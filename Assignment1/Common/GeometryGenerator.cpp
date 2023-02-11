@@ -735,3 +735,78 @@ GeometryGenerator::MeshData GeometryGenerator::CreateWedge(float depth, float wi
 
 	return meshData;
 }
+
+GeometryGenerator::MeshData GeometryGenerator::CreatePyramid(float depth, float width, float height, uint32 numSubdivisions)
+{
+	MeshData meshData;
+
+	Vertex v[16];
+
+	float w2 = 0.5f * width;
+	float h2 = 0.5f * height;
+	float d2 = 0.5f * depth;
+
+	Vertex top = Vertex(0, h2, 0, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//Vertices.
+
+	//Square Face
+	v[0] = Vertex(-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[1] = Vertex(w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[2] = Vertex(w2, -h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[3] = Vertex(-w2, -h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//Triangle Faces
+
+	//Front Face
+	v[4] = top;
+	v[5] = Vertex(w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[6] = Vertex(-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//Right Face
+	v[7] = top;
+	v[8] = Vertex(w2, -h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[9] = Vertex(w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//Left Face
+	v[10] = top;
+	v[11] = Vertex(-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[12] = Vertex(-w2, -h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//Back Face
+	v[13] = top;
+	v[14] = Vertex(-w2, -h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[15] = Vertex(w2, -h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	meshData.Vertices.assign(&v[0], &v[16]);
+
+	// Indices.
+
+	uint32 i[18];
+
+	//Bottom
+	i[0] = 0; i[1] = 1; i[2] = 2;
+	i[3] = 0; i[4] = 2; i[5] = 3;
+
+	//Front
+	i[6] = 4; i[7] = 5; i[8] = 6;
+
+	//Right
+	i[9] = 7; i[10] = 8; i[11] = 9;
+
+	//Left
+	i[12] = 10; i[13] = 11; i[14] = 12;
+
+	//Back
+	i[15] = 13; i[16] = 14; i[17] = 15;
+
+	meshData.Indices32.assign(&i[0], &i[18]);
+
+	// Put a cap on the number of subdivisions.
+	numSubdivisions = std::min<uint32>(numSubdivisions, 6u);
+
+	for (uint32 i = 0; i < numSubdivisions; ++i)
+		Subdivide(meshData);
+
+	return meshData;
+}

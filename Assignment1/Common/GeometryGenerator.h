@@ -110,9 +110,11 @@ public:
 	///</summary>
     MeshData CreateQuad(float x, float y, float w, float h, float depth);
 
-
+	//Wedge
 	MeshData CreateWedge(float depth, float width, float height, uint32 numSubdivisions);
 
+	//Pyramid
+	MeshData CreatePyramid(float depth, float width, float height, uint32 numSubdivisions);
 
 
 	void Subdivide(MeshData& meshData);

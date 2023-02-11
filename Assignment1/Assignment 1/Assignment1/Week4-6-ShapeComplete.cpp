@@ -542,7 +542,8 @@ void ShapesApp::BuildShapeGeometry()
 	GeometryGenerator::MeshData grid = geoGen.CreateGrid(20.0f, 30.0f, 60, 40);
 	GeometryGenerator::MeshData sphere = geoGen.CreateSphere(0.5f, 20, 20);
 	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(0.5f, 0.3f, 3.0f, 20, 20);
-	GeometryGenerator::MeshData wedge = geoGen.CreateWedge(1.0f, 1.0f, 1.0f, 1.0f);
+	GeometryGenerator::MeshData wedge = geoGen.CreateWedge(1.0f, 1.0f, 1.0f, 1);
+	GeometryGenerator::MeshData pyramid = geoGen.CreatePyramid(1.0f, 1.0f, 1.0f, 1);
 
 
 	// We are concatenating all the geometry into one big vertex/index buffer.  So
@@ -555,6 +556,7 @@ void ShapesApp::BuildShapeGeometry()
 	UINT sphereVertexOffset = gridVertexOffset + (UINT)grid.Vertices.size();
 	UINT cylinderVertexOffset = sphereVertexOffset + (UINT)sphere.Vertices.size();
 	UINT wedgeVertexOffset = cylinderVertexOffset + (UINT)cylinder.Vertices.size();
+	UINT pyramidVertexOffset = wedgeVertexOffset + (UINT)wedge.Vertices.size();
 
 	// Cache the starting index for each object in the concatenated index buffer.
 	UINT boxIndexOffset = 0;
@@ -562,6 +564,7 @@ void ShapesApp::BuildShapeGeometry()
 	UINT sphereIndexOffset = gridIndexOffset + (UINT)grid.Indices32.size();
 	UINT cylinderIndexOffset = sphereIndexOffset + (UINT)sphere.Indices32.size();
 	UINT wedgeIndexOffset = cylinderIndexOffset + (UINT)cylinder.Indices32.size();
+	UINT pyramidIndexOffset = wedgeIndexOffset + (UINT)wedge.Indices32.size();
 
 	// Define the SubmeshGeometry that cover different
 	// regions of the vertex/index buffers.
@@ -591,6 +594,11 @@ void ShapesApp::BuildShapeGeometry()
 	wedgeSubmesh.StartIndexLocation = wedgeIndexOffset;
 	wedgeSubmesh.BaseVertexLocation = wedgeVertexOffset;
 
+	SubmeshGeometry pyramidSubmesh;
+	pyramidSubmesh.IndexCount = (UINT)pyramid.Indices32.size();
+	pyramidSubmesh.StartIndexLocation = pyramidIndexOffset;
+	pyramidSubmesh.BaseVertexLocation = pyramidVertexOffset;
+
 	// Extract the vertex elements we are interested in and pack the
 	// vertices of all the meshes into one vertex buffer.
 
@@ -599,7 +607,8 @@ void ShapesApp::BuildShapeGeometry()
 		grid.Vertices.size() +
 		sphere.Vertices.size() +
 		cylinder.Vertices.size() +
-		wedge.Vertices.size();
+		wedge.Vertices.size() +
+		pyramid.Vertices.size();
 
 
 	std::vector<Vertex> vertices(totalVertexCount);
@@ -636,12 +645,19 @@ void ShapesApp::BuildShapeGeometry()
 		vertices[k].Color = XMFLOAT4(DirectX::Colors::HotPink);
 	}
 
+	for (size_t i = 0; i < pyramid.Vertices.size(); ++i, ++k)
+	{
+		vertices[k].Pos = pyramid.Vertices[i].Position;
+		vertices[k].Color = XMFLOAT4(DirectX::Colors::SandyBrown);
+	}
+
 	std::vector<std::uint16_t> indices;
 	indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
 	indices.insert(indices.end(), std::begin(grid.GetIndices16()), std::end(grid.GetIndices16()));
 	indices.insert(indices.end(), std::begin(sphere.GetIndices16()), std::end(sphere.GetIndices16()));
 	indices.insert(indices.end(), std::begin(cylinder.GetIndices16()), std::end(cylinder.GetIndices16()));
 	indices.insert(indices.end(), std::begin(wedge.GetIndices16()), std::end(wedge.GetIndices16()));
+	indices.insert(indices.end(), std::begin(pyramid.GetIndices16()), std::end(pyramid.GetIndices16()));
 
 	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
@@ -672,6 +688,7 @@ void ShapesApp::BuildShapeGeometry()
 	geo->DrawArgs["sphere"] = sphereSubmesh;
 	geo->DrawArgs["cylinder"] = cylinderSubmesh;
 	geo->DrawArgs["wedge"] = wedgeSubmesh;
+	geo->DrawArgs["pyramid"] = pyramidSubmesh;
 
 	mGeometries[geo->Name] = std::move(geo);
 }
@@ -735,7 +752,7 @@ void ShapesApp::BuildFrameResources()
 void ShapesApp::BuildRenderItems()
 {
 	//Wedge 1
-	auto wedgeRitem = std::make_unique<RenderItem>();
+	/*auto wedgeRitem = std::make_unique<RenderItem>();
 
 	XMStoreFloat4x4(&wedgeRitem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 1.0f, 0.0f));
 	wedgeRitem->ObjCBIndex = 0;
@@ -744,8 +761,19 @@ void ShapesApp::BuildRenderItems()
 	wedgeRitem->IndexCount = wedgeRitem->Geo->DrawArgs["wedge"].IndexCount;
 	wedgeRitem->StartIndexLocation = wedgeRitem->Geo->DrawArgs["wedge"].StartIndexLocation;
 	wedgeRitem->BaseVertexLocation = wedgeRitem->Geo->DrawArgs["wedge"].BaseVertexLocation;
-	mAllRitems.push_back(std::move(wedgeRitem));
+	mAllRitems.push_back(std::move(wedgeRitem));*/
 
+	//Pyramid 1
+	auto pyramidRitem = std::make_unique<RenderItem>();
+
+	XMStoreFloat4x4(&pyramidRitem->World, XMMatrixScaling(2.0f, 2.0f, 2.0f) * XMMatrixTranslation(0.0f, 1.0f, 0.0f));
+	pyramidRitem->ObjCBIndex = 0;
+	pyramidRitem->Geo = mGeometries["shapeGeo"].get();
+	pyramidRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	pyramidRitem->IndexCount = pyramidRitem->Geo->DrawArgs["pyramid"].IndexCount;
+	pyramidRitem->StartIndexLocation = pyramidRitem->Geo->DrawArgs["pyramid"].StartIndexLocation;
+	pyramidRitem->BaseVertexLocation = pyramidRitem->Geo->DrawArgs["pyramid"].BaseVertexLocation;
+	mAllRitems.push_back(std::move(pyramidRitem));
 
 	////Box 1
 	//auto boxRitem = std::make_unique<RenderItem>();
