@@ -550,6 +550,7 @@ void ShapesApp::BuildShapeGeometry()
 	GeometryGenerator::MeshData diamond = geoGen.CreateDiamond(2.0f, 1.0f, 12);
 	GeometryGenerator::MeshData spike = geoGen.CreateSpike(2.0f, 3.0f, 1.0f, 6, 2);
 	GeometryGenerator::MeshData squarewindow = geoGen.CreateSquareWindow(0.5f, 1.0f, 2.0f);
+	GeometryGenerator::MeshData caltrop = geoGen.CreateCaltrop(1.0f, 1.0f, 1.0f);
 
 
 	// We are concatenating all the geometry into one big vertex/index buffer.  So
@@ -567,6 +568,7 @@ void ShapesApp::BuildShapeGeometry()
 	UINT diamondVertexOffset = coneVertexOffset + (UINT)cone.Vertices.size();
 	UINT spikeVertexOffset = diamondVertexOffset + (UINT)diamond.Vertices.size();
 	UINT squarewindowVertexOffset = spikeVertexOffset + (UINT)spike.Vertices.size();
+	UINT caltropVertexOffset = squarewindowVertexOffset + (UINT)squarewindow.Vertices.size();
 
 
 	// Cache the starting index for each object in the concatenated index buffer.
@@ -580,6 +582,7 @@ void ShapesApp::BuildShapeGeometry()
 	UINT diamondIndexOffset = coneIndexOffset + (UINT)cone.Indices32.size();
 	UINT spikeIndexOffset = diamondIndexOffset + (UINT)diamond.Indices32.size();
 	UINT squarewindowIndexOffset = spikeIndexOffset + (UINT)spike.Indices32.size();
+	UINT caltropIndexOffset = squarewindowIndexOffset + (UINT)squarewindow.Indices32.size();
 
 	// Define the SubmeshGeometry that cover different
 	// regions of the vertex/index buffers.
@@ -633,6 +636,11 @@ void ShapesApp::BuildShapeGeometry()
 	squarewindowSubmesh.IndexCount = (UINT)squarewindow.Indices32.size();
 	squarewindowSubmesh.StartIndexLocation = squarewindowIndexOffset;
 	squarewindowSubmesh.BaseVertexLocation = squarewindowVertexOffset;
+
+	SubmeshGeometry caltropSubmesh;
+	caltropSubmesh.IndexCount = (UINT)caltrop.Indices32.size();
+	caltropSubmesh.StartIndexLocation = caltropIndexOffset;
+	caltropSubmesh.BaseVertexLocation = caltropVertexOffset;
 	
 
 	// Extract the vertex elements we are interested in and pack the
@@ -648,7 +656,8 @@ void ShapesApp::BuildShapeGeometry()
 		cone.Vertices.size() +
 		diamond.Vertices.size() +
 		spike.Vertices.size() + 
-		squarewindow.Vertices.size();
+		squarewindow.Vertices.size() +
+		caltrop.Vertices.size();
 
 
 	std::vector<Vertex> vertices(totalVertexCount);
@@ -714,6 +723,14 @@ void ShapesApp::BuildShapeGeometry()
 		vertices[k].Pos = squarewindow.Vertices[i].Position;
 		vertices[k].Color = XMFLOAT4(DirectX::Colors::Coral);
 	}
+	
+	for (size_t i = 0; i < caltrop.Vertices.size(); ++i, ++k)
+	{
+		vertices[k].Pos = caltrop.Vertices[i].Position;
+		vertices[k].Color = XMFLOAT4(DirectX::Colors::LightPink);
+	}
+
+	
 
 	std::vector<std::uint16_t> indices;
 	indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
@@ -726,6 +743,7 @@ void ShapesApp::BuildShapeGeometry()
 	indices.insert(indices.end(), std::begin(diamond.GetIndices16()), std::end(diamond.GetIndices16()));
 	indices.insert(indices.end(), std::begin(spike.GetIndices16()), std::end(spike.GetIndices16()));
 	indices.insert(indices.end(), std::begin(squarewindow.GetIndices16()), std::end(squarewindow.GetIndices16()));
+	indices.insert(indices.end(), std::begin(caltrop.GetIndices16()), std::end(caltrop.GetIndices16()));
 
 
 	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
@@ -762,6 +780,7 @@ void ShapesApp::BuildShapeGeometry()
 	geo->DrawArgs["diamond"] = diamondSubmesh;
 	geo->DrawArgs["spike"] = spikeSubmesh;
 	geo->DrawArgs["squarewindow"] = squarewindowSubmesh;
+	geo->DrawArgs["caltrop"] = caltropSubmesh;
 
 	mGeometries[geo->Name] = std::move(geo);
 }
@@ -836,8 +855,20 @@ void ShapesApp::BuildRenderItems()
 	wedgeRitem->BaseVertexLocation = wedgeRitem->Geo->DrawArgs["wedge"].BaseVertexLocation;
 	mAllRitems.push_back(std::move(wedgeRitem));*/
 
+	//Caltrop
+	auto caltropRitem = std::make_unique<RenderItem>();
+
+	XMStoreFloat4x4(&caltropRitem->World, XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 1.0f, 0.0f));
+	caltropRitem->ObjCBIndex = 0;
+	caltropRitem->Geo = mGeometries["shapeGeo"].get();
+	caltropRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	caltropRitem->IndexCount = caltropRitem->Geo->DrawArgs["caltrop"].IndexCount;
+	caltropRitem->StartIndexLocation = caltropRitem->Geo->DrawArgs["caltrop"].StartIndexLocation;
+	caltropRitem->BaseVertexLocation = caltropRitem->Geo->DrawArgs["caltrop"].BaseVertexLocation;
+	mAllRitems.push_back(std::move(caltropRitem));
+
 	//Torus 1
-	auto squarewindowRitem = std::make_unique<RenderItem>();
+	/*auto squarewindowRitem = std::make_unique<RenderItem>();
 
 	XMStoreFloat4x4(&squarewindowRitem->World, XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 1.0f, 0.0f));
 	squarewindowRitem->ObjCBIndex = 0;
@@ -846,7 +877,7 @@ void ShapesApp::BuildRenderItems()
 	squarewindowRitem->IndexCount = squarewindowRitem->Geo->DrawArgs["squarewindow"].IndexCount;
 	squarewindowRitem->StartIndexLocation = squarewindowRitem->Geo->DrawArgs["squarewindow"].StartIndexLocation;
 	squarewindowRitem->BaseVertexLocation = squarewindowRitem->Geo->DrawArgs["squarewindow"].BaseVertexLocation;
-	mAllRitems.push_back(std::move(squarewindowRitem));
+	mAllRitems.push_back(std::move(squarewindowRitem));*/
 
 	//Spike 1
 	/*auto spikeRitem = std::make_unique<RenderItem>();

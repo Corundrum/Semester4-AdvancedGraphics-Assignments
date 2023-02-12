@@ -110,6 +110,9 @@ public:
 	//TORUS - 5
 	MeshData CreateSquareWindow(float depth, float width, float height);
 
+	//CALTROP - 6
+	MeshData CreateCaltrop(float depth, float width, float height);
+
 	void Subdivide(MeshData& meshData);
 private:
 	

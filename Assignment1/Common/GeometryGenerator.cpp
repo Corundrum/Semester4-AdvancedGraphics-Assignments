@@ -1261,3 +1261,61 @@ GeometryGenerator::MeshData GeometryGenerator::CreateSquareWindow(float depth, f
 
 	return meshData;
 }
+
+GeometryGenerator::MeshData GeometryGenerator::CreateCaltrop(float depth, float width, float height)
+{
+	MeshData meshData;
+
+	float cw = (0.1f * width);
+	float ch = (0.1f * height);
+	float cd = (0.1f * depth);
+
+	float w2 = 0.5f * width;
+	float h2 = 0.5f * height;
+	float d2 = 0.5f * depth;
+
+	//Vertices.
+	Vertex v[8];
+
+	//Outter
+	
+	//Centre
+	v[0] = Vertex(-cw, ch, cd, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[1] = Vertex(cw, ch, cd, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[2] = Vertex(0, ch, -cd, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[3] = Vertex(0, -ch, 0, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	
+	//Outter Points
+	v[4] = Vertex(0, h2, 0, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[5] = Vertex(-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[6] = Vertex(w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[7] = Vertex(0, -h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	
+	meshData.Vertices.assign(&v[0], &v[8]);
+	
+
+
+	uint32 i[36];
+
+	i[0] = 0; i[1] = 4; i[2] = 2;
+	i[3] = 1; i[4] = 4; i[5] = 0;
+	i[6] = 2; i[7] = 4; i[8] = 1;
+	
+	i[9] = 0; i[10] = 2; i[11] = 5;
+	i[12] = 2; i[13] = 3; i[14] = 5;
+	i[15] = 3; i[16] = 0; i[17] = 5;
+
+	i[18] = 2; i[19] = 1; i[20] = 6;
+	i[21] = 1; i[22] = 3; i[23] = 6;
+	i[24] = 3; i[25] = 2; i[26] = 6;
+
+	i[27] = 1; i[28] = 0; i[29] = 7;
+	i[30] = 0; i[31] = 3; i[32] = 7;
+	i[33] = 3; i[34] = 1; i[35] = 7;
+
+
+
+	meshData.Indices32.assign(&i[0], &i[36]);
+
+	return meshData;
+}
