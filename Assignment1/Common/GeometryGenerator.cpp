@@ -210,7 +210,7 @@ GeometryGenerator::MeshData GeometryGenerator::CreateSphere(float radius, uint32
 
     return meshData;
 }
- 
+
 void GeometryGenerator::Subdivide(MeshData& meshData)
 {
 	// Save a copy of the input geometry.
@@ -1031,6 +1031,100 @@ GeometryGenerator::MeshData GeometryGenerator::CreateDiamond(float radius, float
 		meshData.Indices32.push_back(ring2size + i);
 		meshData.Indices32.push_back(meshData.Vertices.size() - 1);
 		meshData.Indices32.push_back(ring2size + i + 1);
+	}
+
+	return meshData;
+}
+
+GeometryGenerator::MeshData GeometryGenerator::CreateSpike(float radius, float height, float spikeHeight, uint32 sliceCount, uint32 stackCount)
+{
+	MeshData meshData;
+
+	//CYLINDER
+
+	float sh2 = 0.5f * spikeHeight;
+	float h2 = 0.5f * height;
+
+	float stackHeight = height / stackCount;
+
+	// Amount to increment radius as we move up each stack level from bottom to top.
+	float radiusStep = 0;
+
+	uint32 ringCount = stackCount + 1;
+
+	// Compute vertices for each stack ring starting at the bottom and moving up.
+	for (uint32 i = 0; i < ringCount; ++i)
+	{
+		float y = -h2 + i * stackHeight;
+		float r = radius + i * radiusStep;
+
+		// vertices of ring
+		float dTheta = 2.0f * XM_PI / sliceCount;
+		for (uint32 j = 0; j <= sliceCount; ++j)
+		{
+			Vertex vertex;
+
+			float c = cosf(j * dTheta);
+			float s = sinf(j * dTheta);
+
+			vertex.Position = XMFLOAT3(r * c, y, r * s);
+
+			vertex.TexC.x = (float)j / sliceCount;
+			vertex.TexC.y = 1.0f - (float)i / stackCount;
+			
+			// This is unit length.
+			vertex.TangentU = XMFLOAT3(-s, 0.0f, c);
+
+			float dr = radius;
+			XMFLOAT3 bitangent(dr * c, -height, dr * s);
+
+			XMVECTOR T = XMLoadFloat3(&vertex.TangentU);
+			XMVECTOR B = XMLoadFloat3(&bitangent);
+			XMVECTOR N = XMVector3Normalize(XMVector3Cross(T, B));
+			XMStoreFloat3(&vertex.Normal, N);
+
+			meshData.Vertices.push_back(vertex);
+		}
+	}
+
+	// Add one because we duplicate the first and last vertex per ring
+	// since the texture coordinates are different.
+	uint32 ringVertexCount = sliceCount + 1;
+
+	// Compute indices for each stack.
+	for (uint32 i = 0; i < stackCount; ++i)
+	{
+		for (uint32 j = 0; j < sliceCount; ++j)
+		{
+			meshData.Indices32.push_back(i * ringVertexCount + j);
+			meshData.Indices32.push_back((i + 1) * ringVertexCount + j);
+			meshData.Indices32.push_back((i + 1) * ringVertexCount + j + 1);
+
+			meshData.Indices32.push_back(i * ringVertexCount + j);
+			meshData.Indices32.push_back((i + 1) * ringVertexCount + j + 1);
+			meshData.Indices32.push_back(i * ringVertexCount + j + 1);
+		}
+	}
+	uint32 verticescount = meshData.Vertices.size();
+	
+	Vertex top = Vertex(0, h2 + sh2, 0, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	Vertex bottom = Vertex(0, -h2 - sh2, 0, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	meshData.Vertices.push_back(top);
+	meshData.Vertices.push_back(bottom);
+
+	for (uint32 i = 0; i < sliceCount; ++i)
+	{
+		meshData.Indices32.push_back(i);
+		meshData.Indices32.push_back(i + 1);
+		meshData.Indices32.push_back(meshData.Vertices.size() - 1);
+	}
+
+	for (uint32 i = 0; i < sliceCount; ++i)
+	{
+		meshData.Indices32.push_back(verticescount + i - sliceCount);
+		meshData.Indices32.push_back(verticescount + i - sliceCount - 1);
+		meshData.Indices32.push_back(meshData.Vertices.size() - 2);
 	}
 
 	return meshData;

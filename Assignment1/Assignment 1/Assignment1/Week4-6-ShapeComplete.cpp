@@ -548,6 +548,7 @@ void ShapesApp::BuildShapeGeometry()
 	GeometryGenerator::MeshData pyramid = geoGen.CreatePyramid(1.0f, 1.0f, 1.0f, 5);
 	GeometryGenerator::MeshData cone = geoGen.CreateCone(1.0f, 2.0f, 6, 1);
 	GeometryGenerator::MeshData diamond = geoGen.CreateDiamond(2.0f, 1.0f, 12);
+	GeometryGenerator::MeshData spike = geoGen.CreateSpike(2.0f, 3.0f, 1.0f, 6, 2);
 
 
 	// We are concatenating all the geometry into one big vertex/index buffer.  So
@@ -563,6 +564,7 @@ void ShapesApp::BuildShapeGeometry()
 	UINT pyramidVertexOffset = wedgeVertexOffset + (UINT)wedge.Vertices.size();
 	UINT coneVertexOffset = pyramidVertexOffset + (UINT)pyramid.Vertices.size();
 	UINT diamondVertexOffset = coneVertexOffset + (UINT)cone.Vertices.size();
+	UINT spikeVertexOffset = diamondVertexOffset + (UINT)diamond.Vertices.size();
 
 	// Cache the starting index for each object in the concatenated index buffer.
 	UINT boxIndexOffset = 0;
@@ -573,6 +575,7 @@ void ShapesApp::BuildShapeGeometry()
 	UINT pyramidIndexOffset = wedgeIndexOffset + (UINT)wedge.Indices32.size();
 	UINT coneIndexOffset = pyramidIndexOffset + (UINT)pyramid.Indices32.size();
 	UINT diamondIndexOffset = coneIndexOffset + (UINT)cone.Indices32.size();
+	UINT spikeIndexOffset = diamondIndexOffset + (UINT)diamond.Indices32.size();
 
 	// Define the SubmeshGeometry that cover different
 	// regions of the vertex/index buffers.
@@ -616,6 +619,11 @@ void ShapesApp::BuildShapeGeometry()
 	diamondSubmesh.IndexCount = (UINT)diamond.Indices32.size();
 	diamondSubmesh.StartIndexLocation = diamondIndexOffset;
 	diamondSubmesh.BaseVertexLocation = diamondVertexOffset;
+
+	SubmeshGeometry spikeSubmesh;
+	spikeSubmesh.IndexCount = (UINT)spike.Indices32.size();
+	spikeSubmesh.StartIndexLocation = spikeIndexOffset;
+	spikeSubmesh.BaseVertexLocation = spikeVertexOffset;
 	
 
 	// Extract the vertex elements we are interested in and pack the
@@ -629,7 +637,8 @@ void ShapesApp::BuildShapeGeometry()
 		wedge.Vertices.size() +
 		pyramid.Vertices.size() +
 		cone.Vertices.size() +
-		diamond.Vertices.size();
+		diamond.Vertices.size() +
+		spike.Vertices.size();
 
 
 	std::vector<Vertex> vertices(totalVertexCount);
@@ -684,6 +693,11 @@ void ShapesApp::BuildShapeGeometry()
 		vertices[k].Color = XMFLOAT4(DirectX::Colors::LightSkyBlue);
 	}
 
+	for (size_t i = 0; i < spike.Vertices.size(); ++i, ++k)
+	{
+		vertices[k].Pos = spike.Vertices[i].Position;
+		vertices[k].Color = XMFLOAT4(DirectX::Colors::SaddleBrown);
+	}
 
 	std::vector<std::uint16_t> indices;
 	indices.insert(indices.end(), std::begin(box.GetIndices16()), std::end(box.GetIndices16()));
@@ -694,6 +708,7 @@ void ShapesApp::BuildShapeGeometry()
 	indices.insert(indices.end(), std::begin(pyramid.GetIndices16()), std::end(pyramid.GetIndices16()));
 	indices.insert(indices.end(), std::begin(cone.GetIndices16()), std::end(cone.GetIndices16()));
 	indices.insert(indices.end(), std::begin(diamond.GetIndices16()), std::end(diamond.GetIndices16()));
+	indices.insert(indices.end(), std::begin(spike.GetIndices16()), std::end(spike.GetIndices16()));
 
 	const UINT vbByteSize = (UINT)vertices.size() * sizeof(Vertex);
 	const UINT ibByteSize = (UINT)indices.size() * sizeof(std::uint16_t);
@@ -727,6 +742,7 @@ void ShapesApp::BuildShapeGeometry()
 	geo->DrawArgs["pyramid"] = pyramidSubmesh;
 	geo->DrawArgs["cone"] = coneSubmesh;
 	geo->DrawArgs["diamond"] = diamondSubmesh;
+	geo->DrawArgs["spike"] = spikeSubmesh;
 
 	mGeometries[geo->Name] = std::move(geo);
 }
@@ -801,8 +817,20 @@ void ShapesApp::BuildRenderItems()
 	wedgeRitem->BaseVertexLocation = wedgeRitem->Geo->DrawArgs["wedge"].BaseVertexLocation;
 	mAllRitems.push_back(std::move(wedgeRitem));*/
 
+	//Spike 1
+	auto spikeRitem = std::make_unique<RenderItem>();
+
+	XMStoreFloat4x4(&spikeRitem->World, XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 1.0f, 0.0f));
+	spikeRitem->ObjCBIndex = 0;
+	spikeRitem->Geo = mGeometries["shapeGeo"].get();
+	spikeRitem->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+	spikeRitem->IndexCount = spikeRitem->Geo->DrawArgs["spike"].IndexCount;
+	spikeRitem->StartIndexLocation = spikeRitem->Geo->DrawArgs["spike"].StartIndexLocation;
+	spikeRitem->BaseVertexLocation = spikeRitem->Geo->DrawArgs["spike"].BaseVertexLocation;
+	mAllRitems.push_back(std::move(spikeRitem));
+
 	//Diamond 1
-	auto diamondRitem = std::make_unique<RenderItem>();
+	/*auto diamondRitem = std::make_unique<RenderItem>();
 	
 	XMStoreFloat4x4(&diamondRitem->World, XMMatrixScaling(1.0f, 1.0f, 1.0f) * XMMatrixTranslation(0.0f, 1.0f, 0.0f));
 	diamondRitem->ObjCBIndex = 0;
@@ -811,7 +839,7 @@ void ShapesApp::BuildRenderItems()
 	diamondRitem->IndexCount = diamondRitem->Geo->DrawArgs["diamond"].IndexCount;
 	diamondRitem->StartIndexLocation = diamondRitem->Geo->DrawArgs["diamond"].StartIndexLocation;
 	diamondRitem->BaseVertexLocation = diamondRitem->Geo->DrawArgs["diamond"].BaseVertexLocation;
-	mAllRitems.push_back(std::move(diamondRitem));
+	mAllRitems.push_back(std::move(diamondRitem));*/
 
 
 	//Cone 1

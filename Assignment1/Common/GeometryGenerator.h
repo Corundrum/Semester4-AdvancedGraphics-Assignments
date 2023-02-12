@@ -95,15 +95,17 @@ public:
 	//WEDGE - 1
 	MeshData CreateWedge(float depth, float width, float height, uint32 numSubdivisions);
 
-	//PYRAMID - 2
+	//PYRAMID - kinda a primitive cone
 	MeshData CreatePyramid(float depth, float width, float height, uint32 numSubdivisions);
 
-	//CONE - 3
+	//CONE - 2
 	MeshData CreateCone(float radius, float height, uint32 sliceCount, uint32 stackCount);
 
-	//DIAMOND - 4
+	//DIAMOND - 3
 	MeshData CreateDiamond(float radius, float height, uint32 sliceCount);
 
+	//SPIKES - 4
+	MeshData CreateSpike(float radius, float height, float spikeHeight, uint32 sliceCount, uint32 stackCount);
 
 	void Subdivide(MeshData& meshData);
 private:
