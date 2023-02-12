@@ -844,6 +844,7 @@ void ShapesApp::BuildFrameResources()
 	}
 }
 
+//CREATED FUNCTION FOR RENDERING OBJECTS TO MAKE IT EASIER INTO THE ShapesApp::BuildRenderItems() function.
 void ShapesApp::MakeThing(std::string name, float scaleX, float scaleY, float scaleZ, float posX, float posY, float posZ, float pitch, float yaw, float roll)
 {
 	auto item = std::make_unique<RenderItem>();
@@ -877,21 +878,26 @@ void ShapesApp::BuildRenderItems()
 	MakeThing("box", 3.0f, 15.0f, 50.0f, -25.0f, 7.5f, 0.0f); //left wall
 	MakeThing("box", 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, -25.0f); //front wall
 
+	/*-------------------- CASTLE CORNERS -------------------*/
 	MakeThing("cylinder", 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, 25.0f); //Back Left
 	MakeThing("cylinder", 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, 25.0f); //Back Right
 	MakeThing("cylinder", 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, -25.0f); //Front Left
 	MakeThing("cylinder", 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, -25.0f); //Front Right
 
-	MakeThing("cone", 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, 25.0f);
-	MakeThing("cone", 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, 25.0f);
-	MakeThing("cone", 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, -25.0f);
-	MakeThing("cone", 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, -25.0f);
+	/*-------------------- CASTLE CORNER TOPS -------------------*/
+	MakeThing("cone", 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, 25.0f); //Back Left
+	MakeThing("cone", 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, 25.0f); //Back Right
+	MakeThing("cone", 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, -25.0f); //Front Left
+	MakeThing("cone", 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, -25.0f); //Front Right
 
+	/*-------------------- CASTLE DOOR -------------------*/
 	MakeThing("squarewindow", 10.0f, 10.0f, 10.0f, 0.0f, 7.5f, -25.0f);
 
+	/*-------------------- DIAMOND & PEDESTAL -------------------*/
 	MakeThing("box", 1.0f, 5.0f, 1.0f, 0.0f, 0.0f, 10.0f);
 	MakeThing("diamond", 1.0f, 2.5f, 1.0f, 0.0f, 4.0f, 10.0f);
 
+	/*-------------------- CALTROPS -------------------*/
 	MakeThing("caltrop", 0.7f, 0.7f, 0.7f, -2.0f, 0.325f, 8.0f);
 	MakeThing("caltrop", 0.7f, 0.7f, 0.7f, 2.0f, 0.325f, 7.2f);
 	MakeThing("caltrop", 0.7f, 0.7f, 0.7f, -1.8f, 0.325f, 10.0f);
@@ -918,7 +924,7 @@ void ShapesApp::BuildRenderItems()
 	MakeThing("spike", 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -39.25f);
 	MakeThing("spike", 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -41.5f);
 
-
+	/*-------------------- CASTLE WINDOWS -------------------*/
 	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f);
 	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f);
 	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
@@ -926,6 +932,7 @@ void ShapesApp::BuildRenderItems()
 	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
 	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
 
+	/*-------------------- CASTLE DRAWBRIDGE -------------------*/
 	MakeThing("wedge", 5.0f, 20.0f, 10.0f, 0.0f, 35.0f, 0.0f, 0, -90 * (XM_PI / 180), 90 * (XM_PI/180));
 	MakeThing("wedge", 5.0f, 20.0f, 10.0f, 0.0f, -55.1f, 0.0f, 0, 90 * (XM_PI / 180), 90 * (XM_PI / 180));
 
