@@ -905,7 +905,7 @@ GeometryGenerator::MeshData GeometryGenerator::CreateDiamond(float radius, float
 			float c = cosf(j * dTheta);
 			float s = sinf(j * dTheta);
 
-			vertex.Position = XMFLOAT3(r * c, h2 * 0.7f, r * s);
+			vertex.Position = XMFLOAT3(r * c, h2 * 0.6f, r * s);
 
 			vertex.TexC.x = (float)j / sliceCount;
 			vertex.TexC.y = 1.0f - (float)i;
@@ -913,7 +913,7 @@ GeometryGenerator::MeshData GeometryGenerator::CreateDiamond(float radius, float
 			vertex.TangentU = XMFLOAT3(-s, 0.0f, c);
 			
 			float dr = radius;
-			XMFLOAT3 bitangent(dr * c, -height * 0.8f, dr * s);
+			XMFLOAT3 bitangent(dr * c, -height * 0.6f, dr * s);
 
 			XMVECTOR T = XMLoadFloat3(&vertex.TangentU);
 			XMVECTOR B = XMLoadFloat3(&bitangent);
@@ -934,6 +934,8 @@ GeometryGenerator::MeshData GeometryGenerator::CreateDiamond(float radius, float
 		meshData.Indices32.push_back(i + 1);
 	}
 
+	uint32 ring1size = meshData.Vertices.size() - 1;
+
 	for (uint32 i = 0; i < sliceCount; ++i)
 	{
 		float dTheta = 2.0f * XM_PI / sliceCount;
@@ -946,50 +948,90 @@ GeometryGenerator::MeshData GeometryGenerator::CreateDiamond(float radius, float
 			float c = cosf(j * dTheta);
 			float s = sinf(j * dTheta);
 
-			vertex.Position = XMFLOAT3(r * c, h2 * 0.7f, r * s);
-			vertex2.Position = XMFLOAT3((r * 0.5f) * c, h2, (r * 0.5f));
+			vertex.Position = XMFLOAT3(r * c, h2 * 0.8f, r * s);
 
 			vertex.TexC.x = (float)j / sliceCount;
 			vertex.TexC.y = 1.0f - (float)i;
-			vertex2.TexC.x = (float)j / sliceCount;
-			vertex2.TexC.y = 1.0f - (float)i;
-
+		
 			vertex.TangentU = XMFLOAT3(-s, 0.0f, c);
-			vertex2.TangentU = XMFLOAT3(-s, 0.0f, c);
-
+		
 			float dr = radius;
-			float dr2 = radius * 0.5f;
 
 			XMFLOAT3 bitangent(dr * c, -height, dr * s);
-			XMFLOAT3 bitangent2(dr2 * c, -height, dr2 * s);
 
 			XMVECTOR T = XMLoadFloat3(&vertex.TangentU);
 			XMVECTOR B = XMLoadFloat3(&bitangent);
 			XMVECTOR N = XMVector3Normalize(XMVector3Cross(T, B));
 			XMStoreFloat3(&vertex.Normal, N);
 
-			XMVECTOR T2 = XMLoadFloat3(&vertex2.TangentU);
-			XMVECTOR B2 = XMLoadFloat3(&bitangent2);
-			XMVECTOR N2 = XMVector3Normalize(XMVector3Cross(T2, B2));
-			XMStoreFloat3(&vertex2.Normal, N2);
-
 			meshData.Vertices.push_back(vertex);
-			meshData.Vertices.push_back(vertex2); 
 		}
 	}
 
-	//for (uint32 i = 0; i < sliceCount + 1; ++i)
-	//{
-		meshData.Indices32.push_back(verticeCount + 0);
-		meshData.Indices32.push_back(verticeCount + 0 + 1);
-		meshData.Indices32.push_back(verticeCount + 0 + 2);
+	uint32 ring2size = meshData.Vertices.size() - 1;
 
-		meshData.Indices32.push_back(verticeCount + 0 + );
-		meshData.Indices32.push_back(verticeCount + 0 + 3);
-		meshData.Indices32.push_back(verticeCount + 0 + 2);
-	//}
+	for (uint32 i = 1; i < sliceCount + 1; ++i)
+	{
+	meshData.Indices32.push_back(i);
+	meshData.Indices32.push_back(ring1size + i);
+	meshData.Indices32.push_back(i + 1);
 
+	meshData.Indices32.push_back(ring1size + i);
+	meshData.Indices32.push_back(ring1size + i + 1);
+	meshData.Indices32.push_back(i + 1);
+	}
 
+	for (uint32 i = 0; i < sliceCount; ++i)
+	{
+		float dTheta = 2.0f * XM_PI / sliceCount;
+
+		for (uint32 j = 0; j <= sliceCount; ++j)
+		{
+			Vertex vertex;
+			Vertex vertex2;
+
+			float c = cosf(j * dTheta);
+			float s = sinf(j * dTheta);
+
+			vertex.Position = XMFLOAT3((r * 0.65f) * c, h2, (r * 0.65f) * s);
+
+			vertex.TexC.x = (float)j / sliceCount;
+			vertex.TexC.y = 1.0f - (float)i;
+
+			vertex.TangentU = XMFLOAT3(-s, 0.0f, c);
+
+			float dr = radius * 0.65f;
+
+			XMFLOAT3 bitangent(dr * c, -height, dr * s);
+
+			XMVECTOR T = XMLoadFloat3(&vertex.TangentU);
+			XMVECTOR B = XMLoadFloat3(&bitangent);
+			XMVECTOR N = XMVector3Normalize(XMVector3Cross(T, B));
+			XMStoreFloat3(&vertex.Normal, N);
+
+			meshData.Vertices.push_back(vertex);
+		}
+	}
+
+	for (uint32 i = 1; i < sliceCount + 1; ++i)
+	{
+		meshData.Indices32.push_back(ring1size + i);
+		meshData.Indices32.push_back(ring2size + i);
+		meshData.Indices32.push_back(ring1size + i + 1);
+
+		meshData.Indices32.push_back(ring2size + i);
+		meshData.Indices32.push_back(ring2size + i + 1);
+		meshData.Indices32.push_back(ring1size + i + 1);
+	}
+
+	Vertex top = Vertex(0, h2, 0, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	for (uint32 i = 1; i < sliceCount + 1; ++i)
+	{
+		meshData.Indices32.push_back(ring2size + i);
+		meshData.Indices32.push_back(meshData.Vertices.size() - 1);
+		meshData.Indices32.push_back(ring2size + i + 1);
+	}
 
 	return meshData;
 }
