@@ -107,7 +107,7 @@ public:
 	//SPIKES - 4
 	MeshData CreateSpike(float radius, float height, float spikeHeight, uint32 sliceCount, uint32 stackCount);
 
-	//TORUS - 5
+	//SQUARE WINDOW - 5
 	MeshData CreateSquareWindow(float depth, float width, float height);
 
 	//CALTROP - 6
