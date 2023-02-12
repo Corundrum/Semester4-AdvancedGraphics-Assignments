@@ -107,6 +107,9 @@ public:
 	//SPIKES - 4
 	MeshData CreateSpike(float radius, float height, float spikeHeight, uint32 sliceCount, uint32 stackCount);
 
+	//TORUS - 5
+	MeshData CreateSquareWindow(float depth, float width, float height);
+
 	void Subdivide(MeshData& meshData);
 private:
 	

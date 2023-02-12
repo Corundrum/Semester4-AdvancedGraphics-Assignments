@@ -1129,3 +1129,135 @@ GeometryGenerator::MeshData GeometryGenerator::CreateSpike(float radius, float h
 
 	return meshData;
 }
+
+GeometryGenerator::MeshData GeometryGenerator::CreateSquareWindow(float depth, float width, float height)
+{
+	MeshData meshData;
+
+	Vertex v[16];
+
+	float w2 = 0.5f * width;
+	float h2 = 0.5f * height;
+	float d2 = 0.5f * depth;
+
+	//Vertices.
+
+	//Outter
+
+	//TopLeft
+	v[0] = Vertex(-w2, h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[1] = Vertex(-w2, h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	
+	//BottomLeft
+	v[2] = Vertex(-w2, -h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[3] = Vertex(-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//BottomRight
+	v[4] = Vertex(w2, -h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[5] = Vertex(w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//TopRight
+	v[6] = Vertex(w2, h2, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[7] = Vertex(w2, h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//Inner
+
+	//TopLeft
+	v[8] = Vertex(-w2 * 0.9f, h2 * 0.9f, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[9] = Vertex(-w2 * 0.9f, h2 * 0.9f, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//BottomLeft
+	v[10] = Vertex(-w2 * 0.9f, -h2 * 0.9f, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[11] = Vertex(-w2 * 0.9f, -h2 * 0.9f, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//BottomRight
+	v[12] = Vertex(w2 * 0.9f, -h2 * 0.9f, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[13] = Vertex(w2 * 0.9f, -h2 * 0.9f, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	//TopRight
+	v[14] = Vertex(w2 * 0.9f, h2 * 0.9f, d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[15] = Vertex(w2 * 0.9f, h2 * 0.9f, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+
+	
+	meshData.Vertices.assign(&v[0], &v[16]);
+
+
+	// Indices.
+
+	uint32 i[96];
+
+	//Left Face
+	i[0] = 0; i[1] = 1; i[2] = 2;
+	i[3] = 1; i[4] = 3; i[5] = 2;
+
+	//Bottom Face
+	i[6] = 2; i[7] = 3; i[8] = 5;
+	i[9] = 2; i[10] = 5; i[11] = 4;
+
+	//Right Face
+	i[12] = 4; i[13] = 5; i[14] = 6;
+	i[15] = 5; i[16] = 7; i[17] = 6;
+
+	//Top Face
+	i[18] = 6; i[19] = 7; i[20] = 1;
+	i[21] = 6; i[22] = 1; i[23] = 0;
+
+
+
+	//Front Top Face
+	i[24] = 1; i[25] = 7; i[26] = 15;
+	i[27] = 1; i[28] = 15; i[29] = 9;
+
+	//Front Left Face
+	i[30] = 1; i[31] = 9; i[32] = 3;
+	i[33] = 9; i[34] = 11; i[35] = 3;
+
+	//Front Bottom Face
+	i[36] = 3; i[37] = 11; i[38] = 5;
+	i[39] = 11; i[40] = 13; i[41] = 5;
+
+	//Front Right Face
+	i[42] = 5; i[43] = 13; i[44] = 7;
+	i[45] = 13; i[46] = 15; i[47] = 7;
+
+
+
+	//Back Top Face
+	i[48] = 0; i[49] = 14; i[50] = 6;
+	i[51] = 8; i[52] = 14; i[53] = 0;
+
+	//Back Left Face
+	i[54] = 6; i[55] = 14; i[56] = 4;
+	i[57] = 14; i[58] = 12; i[59] = 4;
+
+	//Back Bottom Face
+	i[60] = 4; i[61] = 12; i[62] = 2;
+	i[63] = 12; i[64] = 10; i[65] = 2;
+
+	//Back Right Face
+	i[66] = 2; i[67] = 10; i[68] = 8;
+	i[69] = 2; i[70] = 8; i[71] = 0;
+
+
+	
+	//Inner Top Face
+	i[72] = 9; i[73] = 15; i[74] = 8;
+	i[75] = 15; i[76] = 14; i[77] = 8;
+
+	//Inner Left Face
+	i[78] = 9; i[79] = 8; i[80] = 11;
+	i[81] = 8; i[82] = 10; i[83] = 11;
+
+	//Inner Bottom Face
+	i[84] = 10; i[85] = 12; i[86] = 11;
+	i[87] = 12; i[88] = 13; i[89] = 11;
+
+	//Inner Right Face
+	i[90] = 14; i[91] = 15; i[92] = 12;
+	i[93] = 15; i[94] = 13; i[95] = 12;
+
+	meshData.Indices32.assign(&i[0], &i[96]);
+
+
+	return meshData;
+}
