@@ -765,66 +765,87 @@ void ShapesApp::BuildShapeGeometry()
 	{
 		vertices[k].Pos = box.Vertices[i].Position;
 		vertices[k].Normal = box.Vertices[i].Normal;
+		vertices[k].TexC = box.Vertices[i].TexC;
 	}
 
 	for (size_t i = 0; i < grid.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = grid.Vertices[i].Position;
 		vertices[k].Normal = grid.Vertices[i].Normal;
+		vertices[k].TexC = grid.Vertices[i].TexC;
+
 	}
 
 	for (size_t i = 0; i < sphere.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = sphere.Vertices[i].Position;
 		vertices[k].Normal = sphere.Vertices[i].Normal;
+		vertices[k].TexC = sphere.Vertices[i].TexC;
+
 	}
 
 	for (size_t i = 0; i < cylinder.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = cylinder.Vertices[i].Position;
 		vertices[k].Normal = cylinder.Vertices[i].Normal;
+		vertices[k].TexC = cylinder.Vertices[i].TexC;
+
 	}
 
 	for (size_t i = 0; i < wedge.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = wedge.Vertices[i].Position;
 		vertices[k].Normal = wedge.Vertices[i].Normal;
+		vertices[k].TexC = wedge.Vertices[i].TexC;
+
 	}
 
 	for (size_t i = 0; i < pyramid.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = pyramid.Vertices[i].Position;
 		vertices[k].Normal = pyramid.Vertices[i].Normal;
+		vertices[k].TexC = pyramid.Vertices[i].TexC;
+
 	}
 
 	for (size_t i = 0; i < cone.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = cone.Vertices[i].Position;
 		vertices[k].Normal = cone.Vertices[i].Normal;
+		vertices[k].TexC = cone.Vertices[i].TexC;
+
 	}
 
 	for (size_t i = 0; i < diamond.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = diamond.Vertices[i].Position;
 		vertices[k].Normal = diamond.Vertices[i].Normal;
+		vertices[k].TexC = diamond.Vertices[i].TexC;
+
 	}
 
 	for (size_t i = 0; i < spike.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = spike.Vertices[i].Position;
 		vertices[k].Normal = spike.Vertices[i].Normal;
+		vertices[k].TexC = spike.Vertices[i].TexC;
+
 	}
 
 	for (size_t i = 0; i < squarewindow.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = squarewindow.Vertices[i].Position;
 		vertices[k].Normal = squarewindow.Vertices[i].Normal;
+		vertices[k].TexC = squarewindow.Vertices[i].TexC;
+
 	}
 	
 	for (size_t i = 0; i < caltrop.Vertices.size(); ++i, ++k)
 	{
 		vertices[k].Pos = caltrop.Vertices[i].Position;
 		vertices[k].Normal = caltrop.Vertices[i].Normal;
+		vertices[k].TexC = caltrop.Vertices[i].TexC;
+
 	}
 
 	
