@@ -16,6 +16,9 @@
     <Filter Include="Common">
       <UniqueIdentifier>{cacc735d-4f05-40dd-9f5c-4011e9b74225}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Shaders">
+      <UniqueIdentifier>{cff60ea5-483b-4dde-939c-06b616bee147}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Week4-6-ShapeComplete.cpp">

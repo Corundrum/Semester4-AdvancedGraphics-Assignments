@@ -436,14 +436,49 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.FarZ = 1000.0f;
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
+	
+	/*------------------------ LIGHTS ------------------------*/
+	
+	//Ambient
+
 	mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
+	
+
+	//Directional/Parallel
+
 	mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	mMainPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.6f };
+	mMainPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.2f };
+	
 	mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
 	mMainPassCB.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+	
 	mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
 	mMainPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
 
+
+	//Point
+
+	mMainPassCB.Lights[3].Position = { -22.0f, 28.0f, 22.0f };
+	mMainPassCB.Lights[3].Strength = { 1.0f, 0.0f, 0.0f };
+	mMainPassCB.Lights[3].FalloffStart = 20.0f;
+	mMainPassCB.Lights[3].FalloffEnd = 28.0f;
+	
+	mMainPassCB.Lights[4].Position = { 22.0f, 28.0f, 22.0f };
+	mMainPassCB.Lights[4].Strength = { 0.0f, 0.75f, 1.0f };
+	mMainPassCB.Lights[4].FalloffStart = 20.0f;
+	mMainPassCB.Lights[4].FalloffEnd = 28.0f;
+	
+	mMainPassCB.Lights[5].Position = { -22.0f, 28.0f, -22.0f };
+	mMainPassCB.Lights[5].Strength = { 0.0f, 0.8f, 0.0f };
+	mMainPassCB.Lights[5].FalloffStart = 20.0f;
+	mMainPassCB.Lights[5].FalloffEnd = 28.0f;
+	
+	mMainPassCB.Lights[6].Position = { 22.0f, 28.0f, -22.0f };
+	mMainPassCB.Lights[6].Strength = { 0.4f, 0.0f, 1.0f };
+	mMainPassCB.Lights[6].FalloffStart = 20.0f;
+	mMainPassCB.Lights[6].FalloffEnd = 28.0f;
+	
+	
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
 }
@@ -511,7 +546,7 @@ void ShapesApp::BuildShapeGeometry()
 	GeometryGenerator::MeshData cylinder = geoGen.CreateCylinder(1.0f, 1.0f, 3.0f, 20, 20);
 	GeometryGenerator::MeshData wedge = geoGen.CreateWedge(1.0f, 1.0f, 1.0f, 1);
 	GeometryGenerator::MeshData pyramid = geoGen.CreatePyramid(1.0f, 1.0f, 1.0f, 5);
-	GeometryGenerator::MeshData cone = geoGen.CreateCone(1.0f, 2.0f, 6, 1);
+	GeometryGenerator::MeshData cone = geoGen.CreateCone(1.0f, 2.0f, 12, 4);
 	GeometryGenerator::MeshData diamond = geoGen.CreateDiamond(2.0f, 1.0f, 12);
 	GeometryGenerator::MeshData spike = geoGen.CreateSpike(2.0f, 3.0f, 1.0f, 6, 2);
 	GeometryGenerator::MeshData squarewindow = geoGen.CreateSquareWindow(0.5f, 1.0f, 1.0f);
@@ -818,7 +853,7 @@ void ShapesApp::BuildMaterials()
 	tile0->DiffuseSrvHeapIndex = 2;
 	tile0->DiffuseAlbedo = XMFLOAT4(Colors::LightGray);
 	tile0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
-	tile0->Roughness = 0.2f;
+	tile0->Roughness = 0.5f;
 
 	auto skullMat = std::make_unique<Material>();
 	skullMat->Name = "skullMat";
