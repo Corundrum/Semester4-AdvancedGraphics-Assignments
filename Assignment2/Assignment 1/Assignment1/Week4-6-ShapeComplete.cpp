@@ -63,7 +63,13 @@ struct RenderItem
 	UINT IndexCount = 0;
 	UINT StartIndexLocation = 0;
 	int BaseVertexLocation = 0;
+};
 
+enum class RenderLayer : int
+{
+	Opaque = 0,
+	Transparent,
+	Count
 };
 
 class ShapesApp : public D3DApp
@@ -91,7 +97,9 @@ private:
 	void UpdateMaterialCBs(const GameTimer& gt);
 	void UpdateMainPassCB(const GameTimer& gt);
 
+	void LoadTextures();
 	void BuildRootSignature();
+	void BuildDescriptorHeaps();
 	void BuildShadersAndInputLayout();
 	void BuildShapeGeometry();
 	void BuildPSOs();
@@ -100,7 +108,9 @@ private:
 	void BuildRenderItems();
 	void DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems);
 
-	void MakeThing(std::string name, float scaleX, float scaleY, float scaleZ, float posX, float posY, float posZ, float pitch = 0, float yaw = 0, float roll = 0);
+	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
+
+	void MakeThing(std::string name, std::string material, RenderLayer type, float scaleX, float scaleY, float scaleZ, float posX, float posY, float posZ, float pitch = 0, float yaw = 0, float roll = 0);
 
 private:
 
@@ -118,16 +128,15 @@ private:
 	std::unordered_map<std::string, std::unique_ptr<Material>> mMaterials;
 	std::unordered_map<std::string, std::unique_ptr<Texture>> mTextures;
 	std::unordered_map<std::string, ComPtr<ID3DBlob>> mShaders;
+	std::unordered_map<std::string, ComPtr<ID3D12PipelineState>> mPSOs;
 
 	std::vector<D3D12_INPUT_ELEMENT_DESC> mInputLayout;
-
-	ComPtr<ID3D12PipelineState> mOpaquePSO = nullptr;
 
 	// List of all the render items.
 	std::vector<std::unique_ptr<RenderItem>> mAllRitems;
 
 	// Render items divided by PSO.
-	std::vector<RenderItem*> mOpaqueRitems;
+	std::vector<RenderItem*> mRitemLayer[(int)RenderLayer::Count];
 
 	PassConstants mMainPassCB;
 
@@ -136,11 +145,11 @@ private:
 	XMFLOAT4X4 mProj = MathHelper::Identity4x4();
 
 	float mTheta = 1.5f * XM_PI;
-	float mPhi = 0.2f * XM_PI;
-	float mRadius = 15.0f;
+	float mPhi = XM_PIDIV2 - 0.1f;
+	float mRadius = 50.0f;
 
 	POINT mLastMousePos;
-	UINT objectIndexnumber;
+	UINT objectIndexnumber = 0;
 };
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE prevInstance,
@@ -189,7 +198,9 @@ bool ShapesApp::Initialize()
 	// so we have to query this information.
 	mCbvSrvDescriptorSize = md3dDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
 
+	LoadTextures();
 	BuildRootSignature();
+	BuildDescriptorHeaps();
 	BuildShadersAndInputLayout();
 	BuildShapeGeometry();
 	BuildMaterials();
@@ -251,7 +262,7 @@ void ShapesApp::Draw(const GameTimer& gt)
 
 	// A command list can be reset after it has been added to the command queue via ExecuteCommandList.
 	// Reusing the command list reuses memory.
-	ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mOpaquePSO.Get()));
+	ThrowIfFailed(mCommandList->Reset(cmdListAlloc.Get(), mPSOs["opaque"].Get()));
 
 	mCommandList->RSSetViewports(1, &mScreenViewport);
 	mCommandList->RSSetScissorRects(1, &mScissorRect);
@@ -261,18 +272,26 @@ void ShapesApp::Draw(const GameTimer& gt)
 		D3D12_RESOURCE_STATE_PRESENT, D3D12_RESOURCE_STATE_RENDER_TARGET));
 
 	// Clear the back buffer and depth buffer.
-	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), Colors::LightSteelBlue, 0, nullptr);
+	mCommandList->ClearRenderTargetView(CurrentBackBufferView(), (float*)&mMainPassCB.FogColor, 0, nullptr);
+
 	mCommandList->ClearDepthStencilView(DepthStencilView(), D3D12_CLEAR_FLAG_DEPTH | D3D12_CLEAR_FLAG_STENCIL, 1.0f, 0, 0, nullptr);
 
 	// Specify the buffers we are going to render to.
 	mCommandList->OMSetRenderTargets(1, &CurrentBackBufferView(), true, &DepthStencilView());
+
+	ID3D12DescriptorHeap* descriptorHeaps[] = { mSrvDescriptorHeap.Get() };
+	mCommandList->SetDescriptorHeaps(_countof(descriptorHeaps), descriptorHeaps);
 
 	mCommandList->SetGraphicsRootSignature(mRootSignature.Get());
 
 	auto passCB = mCurrFrameResource->PassCB->Resource();
 	mCommandList->SetGraphicsRootConstantBufferView(2, passCB->GetGPUVirtualAddress());
 
-	DrawRenderItems(mCommandList.Get(), mOpaqueRitems);
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Opaque]);
+
+	//step2
+	mCommandList->SetPipelineState(mPSOs["transparent"].Get());
+	DrawRenderItems(mCommandList.Get(), mRitemLayer[(int)RenderLayer::Transparent]);
 
 	// Indicate a state transition on the resource usage.
 	mCommandList->ResourceBarrier(1, &CD3DX12_RESOURCE_BARRIER::Transition(CurrentBackBuffer(),
@@ -483,20 +502,54 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 	currPassCB->CopyData(0, mMainPassCB);
 }
 
+void ShapesApp::LoadTextures()
+{
+	auto grassTex = std::make_unique<Texture>();
+	grassTex->Name = "grassTex";
+	grassTex->Filename = L"../../Textures/grass.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), grassTex->Filename.c_str(),
+		grassTex->Resource, grassTex->UploadHeap));
 
+	auto waterTex = std::make_unique<Texture>();
+	waterTex->Name = "waterTex";
+	waterTex->Filename = L"../../Textures/water1.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), waterTex->Filename.c_str(),
+		waterTex->Resource, waterTex->UploadHeap));
+
+	auto fenceTex = std::make_unique<Texture>();
+	fenceTex->Name = "fenceTex";
+	fenceTex->Filename = L"../../Textures/WoodCrate01.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), fenceTex->Filename.c_str(),
+		fenceTex->Resource, fenceTex->UploadHeap));
+
+	mTextures[grassTex->Name] = std::move(grassTex);
+	mTextures[waterTex->Name] = std::move(waterTex);
+	mTextures[fenceTex->Name] = std::move(fenceTex);
+}
 
 void ShapesApp::BuildRootSignature()
 {
-	// Root parameter can be a table, root descriptor or root constants.
-	CD3DX12_ROOT_PARAMETER slotRootParameter[3];
+	CD3DX12_DESCRIPTOR_RANGE texTable;
+	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
-	// Create root CBV.
-	slotRootParameter[0].InitAsConstantBufferView(0);
-	slotRootParameter[1].InitAsConstantBufferView(1);
-	slotRootParameter[2].InitAsConstantBufferView(2);
+	// Root parameter can be a table, root descriptor or root constants.
+	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
+
+	// Perfomance TIP: Order from most frequent to least frequent.
+	slotRootParameter[0].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
+	slotRootParameter[1].InitAsConstantBufferView(0);
+	slotRootParameter[2].InitAsConstantBufferView(1);
+	slotRootParameter[3].InitAsConstantBufferView(2);
+
+	auto staticSamplers = GetStaticSamplers();
 
 	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(3, slotRootParameter, 0, nullptr, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(4, slotRootParameter,
+		(UINT)staticSamplers.size(), staticSamplers.data(),
+		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
 	// create a root signature with a single slot which points to a descriptor range consisting of a single constant buffer
 	ComPtr<ID3DBlob> serializedRootSig = nullptr;
@@ -517,16 +570,58 @@ void ShapesApp::BuildRootSignature()
 		IID_PPV_ARGS(mRootSignature.GetAddressOf())));
 }
 
+void ShapesApp::BuildDescriptorHeaps()
+{
+	//
+	// Create the SRV heap.
+	//
+	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
+	srvHeapDesc.NumDescriptors = 3;
+	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
+	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
+
+	//
+	// Fill out the heap with actual descriptors.
+	//
+	CD3DX12_CPU_DESCRIPTOR_HANDLE hDescriptor(mSrvDescriptorHeap->GetCPUDescriptorHandleForHeapStart());
+
+	auto grassTex = mTextures["grassTex"]->Resource;
+	auto waterTex = mTextures["waterTex"]->Resource;
+	auto fenceTex = mTextures["fenceTex"]->Resource;
+
+	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+	srvDesc.Format = grassTex->GetDesc().Format;
+	srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+	srvDesc.Texture2D.MostDetailedMip = 0;
+	srvDesc.Texture2D.MipLevels = -1;
+	md3dDevice->CreateShaderResourceView(grassTex.Get(), &srvDesc, hDescriptor);
+
+	// next descriptor
+	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+	srvDesc.Format = waterTex->GetDesc().Format;
+	md3dDevice->CreateShaderResourceView(waterTex.Get(), &srvDesc, hDescriptor);
+
+	// next descriptor
+	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+	srvDesc.Format = fenceTex->GetDesc().Format;
+	md3dDevice->CreateShaderResourceView(fenceTex.Get(), &srvDesc, hDescriptor);
+}
+
 void ShapesApp::BuildShadersAndInputLayout()
 {
-	const D3D_SHADER_MACRO alphaTestDefines[] =
+	const D3D_SHADER_MACRO defines[] =
 	{
-		"ALPHA_TEST", "1",
-		NULL, NULL
+		"NOFOG",
+		//	"FOG", 
+		"1", NULL, NULL
 	};
 
 	mShaders["standardVS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "VS", "vs_5_1");
-	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", nullptr, "PS", "ps_5_1");
+	mShaders["opaquePS"] = d3dUtil::CompileShader(L"Shaders\\Default.hlsl", defines, "PS", "ps_5_1");
 
 	mInputLayout =
 	{
@@ -815,7 +910,26 @@ void ShapesApp::BuildPSOs()
 	opaquePsoDesc.SampleDesc.Count = m4xMsaaState ? 4 : 1;
 	opaquePsoDesc.SampleDesc.Quality = m4xMsaaState ? (m4xMsaaQuality - 1) : 0;
 	opaquePsoDesc.DSVFormat = mDepthStencilFormat;
-	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mOpaquePSO)));
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&opaquePsoDesc, IID_PPV_ARGS(&mPSOs["opaque"])));
+
+	//step4
+	D3D12_GRAPHICS_PIPELINE_STATE_DESC transparentPsoDesc = opaquePsoDesc;
+
+	D3D12_RENDER_TARGET_BLEND_DESC transparencyBlendDesc;
+	transparencyBlendDesc.BlendEnable = true;
+	transparencyBlendDesc.LogicOpEnable = false;
+	transparencyBlendDesc.SrcBlend = D3D12_BLEND_SRC_ALPHA;
+	transparencyBlendDesc.DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+	transparencyBlendDesc.BlendOp = D3D12_BLEND_OP_ADD;
+	transparencyBlendDesc.SrcBlendAlpha = D3D12_BLEND_ONE;
+	transparencyBlendDesc.DestBlendAlpha = D3D12_BLEND_ZERO;
+	transparencyBlendDesc.BlendOpAlpha = D3D12_BLEND_OP_ADD;
+	transparencyBlendDesc.LogicOp = D3D12_LOGIC_OP_NOOP;
+	transparencyBlendDesc.RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+	transparentPsoDesc.BlendState.RenderTarget[0] = transparencyBlendDesc;
+	ThrowIfFailed(md3dDevice->CreateGraphicsPipelineState(&transparentPsoDesc, IID_PPV_ARGS(&mPSOs["transparent"])));
+
 }
 
 
@@ -831,54 +945,49 @@ void ShapesApp::BuildFrameResources()
 
 void ShapesApp::BuildMaterials()
 {
-	auto bricks0 = std::make_unique<Material>();
-	bricks0->Name = "bricks0";
-	bricks0->MatCBIndex = 0;
-	bricks0->DiffuseSrvHeapIndex = 0;
-	bricks0->DiffuseAlbedo = XMFLOAT4(Colors::ForestGreen);
-	bricks0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
-	bricks0->Roughness = 0.1f;
+	auto grass = std::make_unique<Material>();
+	grass->Name = "grass";
+	grass->MatCBIndex = 0;
+	grass->DiffuseSrvHeapIndex = 0;
+	grass->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	grass->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
+	grass->Roughness = 0.125f;
 
-	auto stone0 = std::make_unique<Material>();
-	stone0->Name = "stone0";
-	stone0->MatCBIndex = 1;
-	stone0->DiffuseSrvHeapIndex = 1;
-	stone0->DiffuseAlbedo = XMFLOAT4(Colors::LightSteelBlue);
-	stone0->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
-	stone0->Roughness = 0.3f;
+	// This is not a good water material definition, but we do not have all the rendering
+	// tools we need (transparency, environment reflection), so we fake it for now.
+	auto water = std::make_unique<Material>();
+	water->Name = "water";
+	water->MatCBIndex = 1;
+	water->DiffuseSrvHeapIndex = 1;
+	//step 6: what happens if you change the alpha to 1.0? 100% water and no blending?
+	water->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.6f);
+	water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
 
-	auto tile0 = std::make_unique<Material>();
-	tile0->Name = "tile0";
-	tile0->MatCBIndex = 2;
-	tile0->DiffuseSrvHeapIndex = 2;
-	tile0->DiffuseAlbedo = XMFLOAT4(Colors::LightGray);
-	tile0->FresnelR0 = XMFLOAT3(0.02f, 0.02f, 0.02f);
-	tile0->Roughness = 0.5f;
+	water->Roughness = 0.0f;
 
-	auto skullMat = std::make_unique<Material>();
-	skullMat->Name = "skullMat";
-	skullMat->MatCBIndex = 3;
-	skullMat->DiffuseSrvHeapIndex = 3;
-	skullMat->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
-	skullMat->FresnelR0 = XMFLOAT3(0.05f, 0.05f, 0.05f);
-	skullMat->Roughness = 0.3f;
+	auto wirefence = std::make_unique<Material>();
+	wirefence->Name = "wirefence";
+	wirefence->MatCBIndex = 2;
+	wirefence->DiffuseSrvHeapIndex = 2;
+	wirefence->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+	wirefence->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
+	wirefence->Roughness = 0.25f;
 
-	mMaterials["bricks0"] = std::move(bricks0);
-	mMaterials["stone0"] = std::move(stone0);
-	mMaterials["tile0"] = std::move(tile0);
-	mMaterials["skullMat"] = std::move(skullMat);
+	mMaterials["grass"] = std::move(grass);
+	mMaterials["water"] = std::move(water);
+	mMaterials["wirefence"] = std::move(wirefence);
 }
 
 //CREATED FUNCTION FOR RENDERING OBJECTS TO MAKE IT EASIER INTO THE ShapesApp::BuildRenderItems() function.
-void ShapesApp::MakeThing(std::string name, float scaleX, float scaleY, float scaleZ, float posX, float posY, float posZ, float pitch, float yaw, float roll)
+void ShapesApp::MakeThing(std::string name, std::string material, RenderLayer type, float scaleX, float scaleY, float scaleZ, float posX, float posY, float posZ, float pitch, float yaw, float roll)
 {
 	auto item = std::make_unique<RenderItem>();
-	
+
 	XMStoreFloat4x4(&item->World, XMMatrixScaling(scaleX, scaleY, scaleZ) * XMMatrixTranslation(posX, posY, posZ) * XMMatrixRotationRollPitchYaw(pitch, yaw, roll));
 	XMStoreFloat4x4(&item->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
 	item->ObjCBIndex = objectIndexnumber;
 
-	item->Mat = mMaterials["stone0"].get();
+	item->Mat = mMaterials[material].get();
 	item->Geo = mGeometries["shapeGeo"].get();
 	item->PrimitiveType = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
@@ -886,6 +995,7 @@ void ShapesApp::MakeThing(std::string name, float scaleX, float scaleY, float sc
 	item->StartIndexLocation = item->Geo->DrawArgs[name].StartIndexLocation;
 	item->BaseVertexLocation = item->Geo->DrawArgs[name].BaseVertexLocation;
 
+	mRitemLayer[(int)type].push_back(item.get());
 	mAllRitems.push_back(std::move(item));
 
 	objectIndexnumber++;
@@ -895,78 +1005,75 @@ void ShapesApp::MakeThing(std::string name, float scaleX, float scaleY, float sc
 void ShapesApp::BuildRenderItems()
 {
 	/*-------------------- GRASSY GROUND --------------------*/
-	MakeThing("grid", 10.0f, 1.0f, 1.0f, 0.0f, 0.0f, 20.0f); 
-	MakeThing("grid", 10.0f, 1.0f, 1.0f, 0.0f, 0.0f, -110.0f);
-	MakeThing("box", 1000.0f, 1.0f, 50.0f, 0.0f, -0.525f, -40.0f);
-
+	MakeThing("box", "grass", RenderLayer::Opaque, 256.0f, 10.0f, 100.0f, 0.0f, -5.0f, 20.0f);
+	MakeThing("box", "grass", RenderLayer::Opaque, 256.0f, 10.0f, 100.0f, 0.0f, -5.0f, -110.0f);
+	MakeThing("box", "grass", RenderLayer::Opaque, 256.0f, 5.0f, 100.0f, 0.0f, -10.0f, -45.0f);
+	MakeThing("grid", "water", RenderLayer::Transparent, 10.0f, 1.0f, 1.0f, 0.0f, -0.2f, -45.0f);
 
 	/*-------------------- CASTLE WALLS -------------------*/
-	MakeThing("box", 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, 25.0f); //back wall
-	MakeThing("box", 3.0f, 15.0f, 50.0f, 25.0f, 7.5f, 0.0f); //right wall
-	MakeThing("box", 3.0f, 15.0f, 50.0f, -25.0f, 7.5f, 0.0f); //left wall
-	MakeThing("box", 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, -25.0f); //front wall
+	MakeThing("box", "grass", RenderLayer::Opaque, 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, 25.0f); //back wall
+	MakeThing("box", "grass", RenderLayer::Opaque, 3.0f, 15.0f, 50.0f, 25.0f, 7.5f, 0.0f); //right wall
+	MakeThing("box", "grass", RenderLayer::Opaque, 3.0f, 15.0f, 50.0f, -25.0f, 7.5f, 0.0f); //left wall
+	MakeThing("box", "grass", RenderLayer::Opaque, 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, -25.0f); //front wall
 
 	/*-------------------- CASTLE CORNERS -------------------*/
-	MakeThing("cylinder", 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, 25.0f); //Back Left
-	MakeThing("cylinder", 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, 25.0f); //Back Right
-	MakeThing("cylinder", 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, -25.0f); //Front Left
-	MakeThing("cylinder", 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, -25.0f); //Front Right
+	MakeThing("cylinder", "grass", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, 25.0f); //Back Left
+	MakeThing("cylinder", "grass", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, 25.0f); //Back Right
+	MakeThing("cylinder", "grass", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, -25.0f); //Front Left
+	MakeThing("cylinder", "grass", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, -25.0f); //Front Right
 
 	/*-------------------- CASTLE CORNER TOPS -------------------*/
-	MakeThing("cone", 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, 25.0f); //Back Left
-	MakeThing("cone", 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, 25.0f); //Back Right
-	MakeThing("cone", 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, -25.0f); //Front Left
-	MakeThing("cone", 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, -25.0f); //Front Right
+	MakeThing("cone", "grass", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, 25.0f); //Back Left
+	MakeThing("cone", "grass", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, 25.0f); //Back Right
+	MakeThing("cone", "grass", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, -25.0f); //Front Left
+	MakeThing("cone", "grass", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, -25.0f); //Front Right
 
 	/*-------------------- CASTLE DOOR -------------------*/
-	MakeThing("squarewindow", 10.0f, 10.0f, 10.0f, 0.0f, 7.5f, -25.0f);
+	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 10.0f, 10.0f, 10.0f, 0.0f, 7.5f, -25.0f);
 
 	/*-------------------- DIAMOND & PEDESTAL -------------------*/
-	MakeThing("box", 1.0f, 5.0f, 1.0f, 0.0f, 0.0f, 10.0f);
-	MakeThing("diamond", 1.0f, 2.5f, 1.0f, 0.0f, 4.0f, 10.0f);
+	MakeThing("box", "grass", RenderLayer::Opaque, 1.0f, 5.0f, 1.0f, 0.0f, 0.0f, 10.0f);
+	MakeThing("diamond", "grass", RenderLayer::Opaque, 1.0f, 2.5f, 1.0f, 0.0f, 4.0f, 10.0f);
 
 	/*-------------------- CALTROPS -------------------*/
-	MakeThing("caltrop", 0.7f, 0.7f, 0.7f, -2.0f, 0.325f, 8.0f);
-	MakeThing("caltrop", 0.7f, 0.7f, 0.7f, 2.0f, 0.325f, 7.2f);
-	MakeThing("caltrop", 0.7f, 0.7f, 0.7f, -1.8f, 0.325f, 10.0f);
-	MakeThing("caltrop", 0.7f, 0.7f, 0.7f, 0.0f, 0.325f, 7.0f);
-	MakeThing("caltrop", 0.7f, 0.7f, 0.7f, 0.6f, 0.325f, 11.0f);
-	MakeThing("caltrop", 0.7f, 0.7f, 0.7f, -0.3f, 0.325f, 14.0f);
-	MakeThing("caltrop", 0.7f, 0.7f, 0.7f, 4.0f, 0.325f, 10.5f);
-	
+	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -2.0f, 0.325f, 8.0f);
+	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 2.0f, 0.325f, 7.2f);
+	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -1.8f, 0.325f, 10.0f);
+	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 0.0f, 0.325f, 7.0f);
+	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 0.6f, 0.325f, 11.0f);
+	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -0.3f, 0.325f, 14.0f);
+	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 4.0f, 0.325f, 10.5f);
+
 	//right side spikes
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -28.0f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -30.25f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -32.5f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -34.75f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -37.0f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -39.25f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -41.5f);
-	
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -28.0f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -30.25f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -32.5f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -34.75f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -37.0f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -39.25f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -41.5f);
+
 	//left side spikes
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -28.0f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -30.25f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -32.5f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -34.75f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -37.0f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -39.25f);
-	MakeThing("spike", 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -41.5f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -28.0f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -30.25f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -32.5f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -34.75f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -37.0f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -39.25f);
+	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -41.5f);
 
 	/*-------------------- CASTLE WINDOWS -------------------*/
-	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f);
-	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f);
-	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
-	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
-	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
-	MakeThing("squarewindow", 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
+	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f);
+	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f);
+	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
+	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
+	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
+	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
 
 	/*-------------------- CASTLE DRAWBRIDGE -------------------*/
-	MakeThing("wedge", 5.0f, 20.0f, 10.0f, 0.0f, 35.0f, 0.0f, 0, -90 * (XM_PI / 180), 90 * (XM_PI/180));
-	MakeThing("wedge", 5.0f, 20.0f, 10.0f, 0.0f, -55.1f, 0.0f, 0, 90 * (XM_PI / 180), 90 * (XM_PI / 180));
+	MakeThing("wedge", "grass", RenderLayer::Opaque, 5.0f, 20.0f, 10.0f, 0.0f, 35.0f, 0.0f, 0, -90 * (XM_PI / 180), 90 * (XM_PI / 180));
+	MakeThing("wedge", "grass", RenderLayer::Opaque, 5.0f, 20.0f, 10.0f, 0.0f, -55.1f, 0.0f, 0, 90 * (XM_PI / 180), 90 * (XM_PI / 180));
 
-	// All the render items are opaque.
-	for (auto& e : mAllRitems)
-		mOpaqueRitems.push_back(e.get());
 }
 
 void ShapesApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems)
@@ -986,13 +1093,73 @@ void ShapesApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::v
 		cmdList->IASetIndexBuffer(&ri->Geo->IndexBufferView());
 		cmdList->IASetPrimitiveTopology(ri->PrimitiveType);
 
+		CD3DX12_GPU_DESCRIPTOR_HANDLE tex(mSrvDescriptorHeap->GetGPUDescriptorHandleForHeapStart());
+		tex.Offset(ri->Mat->DiffuseSrvHeapIndex, mCbvSrvDescriptorSize);
+
 		D3D12_GPU_VIRTUAL_ADDRESS objCBAddress = objectCB->GetGPUVirtualAddress() + ri->ObjCBIndex * objCBByteSize;
 		D3D12_GPU_VIRTUAL_ADDRESS matCBAddress = matCB->GetGPUVirtualAddress() + ri->Mat->MatCBIndex * matCBByteSize;
 
-		cmdList->SetGraphicsRootConstantBufferView(0, objCBAddress);
-		cmdList->SetGraphicsRootConstantBufferView(1, matCBAddress);
+		cmdList->SetGraphicsRootDescriptorTable(0, tex);
+		cmdList->SetGraphicsRootConstantBufferView(1, objCBAddress);
+		cmdList->SetGraphicsRootConstantBufferView(3, matCBAddress);
 
 		cmdList->DrawIndexedInstanced(ri->IndexCount, 1, ri->StartIndexLocation, ri->BaseVertexLocation, 0);
 	}
 }
 
+std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> ShapesApp::GetStaticSamplers()
+{
+	// Applications usually only need a handful of samplers.  So just define them all up front
+	// and keep them available as part of the root signature.  
+
+	const CD3DX12_STATIC_SAMPLER_DESC pointWrap(
+		0, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC pointClamp(
+		1, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_POINT, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC linearWrap(
+		2, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC linearClamp(
+		3, // shaderRegister
+		D3D12_FILTER_MIN_MAG_MIP_LINEAR, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP); // addressW
+
+	const CD3DX12_STATIC_SAMPLER_DESC anisotropicWrap(
+		4, // shaderRegister
+		D3D12_FILTER_ANISOTROPIC, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_WRAP,  // addressW
+		0.0f,                             // mipLODBias
+		8);                               // maxAnisotropy
+
+	const CD3DX12_STATIC_SAMPLER_DESC anisotropicClamp(
+		5, // shaderRegister
+		D3D12_FILTER_ANISOTROPIC, // filter
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressU
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressV
+		D3D12_TEXTURE_ADDRESS_MODE_CLAMP,  // addressW
+		0.0f,                              // mipLODBias
+		8);                                // maxAnisotropy
+
+	return {
+		pointWrap, pointClamp,
+		linearWrap, linearClamp,
+		anisotropicWrap, anisotropicClamp };
+}
