@@ -550,7 +550,7 @@ void ShapesApp::LoadTextures()
 
 	auto fenceTex = std::make_unique<Texture>();
 	fenceTex->Name = "fenceTex";
-	fenceTex->Filename = L"../../Textures/WoodCrate01.dds";
+	fenceTex->Filename = L"../../Textures/bricks.dds";
 	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
 		mCommandList.Get(), fenceTex->Filename.c_str(),
 		fenceTex->Resource, fenceTex->UploadHeap));
@@ -615,7 +615,7 @@ void ShapesApp::BuildDescriptorHeaps()
 	// Create the SRV heap.
 	//
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 4;
+	srvHeapDesc.NumDescriptors = 5;
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
@@ -1043,8 +1043,8 @@ void ShapesApp::BuildMaterials()
 
 	auto wood = std::make_unique<Material>();
 	wood->Name = "wood";
-	wood->MatCBIndex = 2;
-	wood->DiffuseSrvHeapIndex = 2;
+	wood->MatCBIndex = 3;
+	wood->DiffuseSrvHeapIndex = 3;
 	wood->DiffuseAlbedo = XMFLOAT4(Colors::SandyBrown);
 	wood->FresnelR0 = XMFLOAT3(0.15f, 0.18f, 0.18f);
 	wood->Roughness = 0.25f;
@@ -1088,28 +1088,28 @@ void ShapesApp::BuildRenderItems()
 	MakeThing("grid", "water", RenderLayer::Transparent, 10.0f, 1.0f, 1.0f, 0.0f, -0.2f, -45.0f);
 
 	/*-------------------- CASTLE WALLS -------------------*/
-	MakeThing("box", "grass", RenderLayer::Opaque, 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, 25.0f); //back wall
-	MakeThing("box", "grass", RenderLayer::Opaque, 3.0f, 15.0f, 50.0f, 25.0f, 7.5f, 0.0f); //right wall
-	MakeThing("box", "grass", RenderLayer::Opaque, 3.0f, 15.0f, 50.0f, -25.0f, 7.5f, 0.0f); //left wall
-	MakeThing("box", "grass", RenderLayer::Opaque, 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, -25.0f); //front wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, 25.0f); //back wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, 3.0f, 15.0f, 50.0f, 25.0f, 7.5f, 0.0f); //right wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, 3.0f, 15.0f, 50.0f, -25.0f, 7.5f, 0.0f); //left wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, -25.0f); //front wall
 
 	/*-------------------- CASTLE CORNERS -------------------*/
-	MakeThing("cylinder", "grass", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, 25.0f); //Back Left
-	MakeThing("cylinder", "grass", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, 25.0f); //Back Right
-	MakeThing("cylinder", "grass", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, -25.0f); //Front Left
-	MakeThing("cylinder", "grass", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, -25.0f); //Front Right
+	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, 25.0f); //Back Left
+	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, 25.0f); //Back Right
+	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, -25.0f); //Front Left
+	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, -25.0f); //Front Right
 
 	/*-------------------- CASTLE CORNER TOPS -------------------*/
-	MakeThing("cone", "grass", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, 25.0f); //Back Left
-	MakeThing("cone", "grass", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, 25.0f); //Back Right
-	MakeThing("cone", "grass", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, -25.0f); //Front Left
-	MakeThing("cone", "grass", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, -25.0f); //Front Right
+	MakeThing("cone", "wirefence", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, 25.0f); //Back Left
+	MakeThing("cone", "wirefence", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, 25.0f); //Back Right
+	MakeThing("cone", "wirefence", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, -25.0f); //Front Left
+	MakeThing("cone", "wirefence", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, -25.0f); //Front Right
 
 	/*-------------------- CASTLE DOOR -------------------*/
 	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 10.0f, 10.0f, 10.0f, 0.0f, 7.5f, -25.0f);
 
 	/*-------------------- DIAMOND & PEDESTAL -------------------*/
-	MakeThing("box", "grass", RenderLayer::Opaque, 1.0f, 5.0f, 1.0f, 0.0f, 0.0f, 10.0f);
+	MakeThing("box", "wirefence", RenderLayer::Opaque, 1.0f, 5.0f, 1.0f, 0.0f, 0.0f, 10.0f);
 	MakeThing("diamond", "grass", RenderLayer::Opaque, 1.0f, 2.5f, 1.0f, 0.0f, 4.0f, 10.0f);
 
 	/*-------------------- CALTROPS -------------------*/
