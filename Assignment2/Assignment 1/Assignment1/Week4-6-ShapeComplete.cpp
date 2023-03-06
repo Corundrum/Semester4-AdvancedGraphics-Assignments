@@ -93,6 +93,7 @@ private:
 
 	void OnKeyboardInput(const GameTimer& gt);
 	void UpdateCamera(const GameTimer& gt);
+	void AnimateMaterials(const GameTimer& gt);
 	void UpdateObjectCBs(const GameTimer& gt);
 	void UpdateMaterialCBs(const GameTimer& gt);
 	void UpdateMainPassCB(const GameTimer& gt);
@@ -247,6 +248,8 @@ void ShapesApp::Update(const GameTimer& gt)
 		CloseHandle(eventHandle);
 	}
 
+
+	AnimateMaterials(gt);
 	UpdateObjectCBs(gt);
 	UpdateMaterialCBs(gt);
 	UpdateMainPassCB(gt);
@@ -364,6 +367,7 @@ void ShapesApp::OnMouseMove(WPARAM btnState, int x, int y)
 
 void ShapesApp::OnKeyboardInput(const GameTimer& gt)
 {
+
 }
 
 void ShapesApp::UpdateCamera(const GameTimer& gt)
@@ -381,6 +385,30 @@ void ShapesApp::UpdateCamera(const GameTimer& gt)
 	XMMATRIX view = XMMatrixLookAtLH(pos, target, up);
 	XMStoreFloat4x4(&mView, view);
 }
+
+void ShapesApp::AnimateMaterials(const GameTimer& gt)
+{
+	// Scroll the water material texture coordinates.
+	auto waterMat = mMaterials["water"].get();
+
+	float& tu = waterMat->MatTransform(3, 0);
+	float& tv = waterMat->MatTransform(3, 1);
+
+	tu += 0.01f * gt.DeltaTime();
+	tv += 0.02f * gt.DeltaTime();
+
+	if (tu >= 1.0f)
+		tu -= 1.0f;
+	if (tv >= 1.0f)
+		tv -= 1.0f;
+
+	waterMat->MatTransform(3, 0) = tu;
+	waterMat->MatTransform(3, 1) = tv;
+
+	// Material has changed, so need to update cbuffer.
+	waterMat->NumFramesDirty = gNumFrameResources;
+}
+
 
 void ShapesApp::UpdateObjectCBs(const GameTimer& gt)
 {
@@ -527,9 +555,17 @@ void ShapesApp::LoadTextures()
 		mCommandList.Get(), fenceTex->Filename.c_str(),
 		fenceTex->Resource, fenceTex->UploadHeap));
 
+	auto woodTex = std::make_unique<Texture>();
+	woodTex->Name = "woodTex";
+	woodTex->Filename = L"../../Textures/wood.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), woodTex->Filename.c_str(),
+		woodTex->Resource, woodTex->UploadHeap));
+
 	mTextures[grassTex->Name] = std::move(grassTex);
 	mTextures[waterTex->Name] = std::move(waterTex);
 	mTextures[fenceTex->Name] = std::move(fenceTex);
+	mTextures[woodTex->Name] = std::move(woodTex);
 }
 
 void ShapesApp::BuildRootSignature()
@@ -538,18 +574,19 @@ void ShapesApp::BuildRootSignature()
 	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
 	// Root parameter can be a table, root descriptor or root constants.
-	CD3DX12_ROOT_PARAMETER slotRootParameter[4];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[5];
 
 	// Perfomance TIP: Order from most frequent to least frequent.
 	slotRootParameter[0].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
 	slotRootParameter[1].InitAsConstantBufferView(0);
 	slotRootParameter[2].InitAsConstantBufferView(1);
 	slotRootParameter[3].InitAsConstantBufferView(2);
+	slotRootParameter[4].InitAsConstantBufferView(3);
 
 	auto staticSamplers = GetStaticSamplers();
 
 	// A root signature is an array of root parameters.
-	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(4, slotRootParameter,
+	CD3DX12_ROOT_SIGNATURE_DESC rootSigDesc(5, slotRootParameter,
 		(UINT)staticSamplers.size(), staticSamplers.data(),
 		D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
@@ -578,7 +615,7 @@ void ShapesApp::BuildDescriptorHeaps()
 	// Create the SRV heap.
 	//
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 3;
+	srvHeapDesc.NumDescriptors = 4;
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
@@ -591,6 +628,7 @@ void ShapesApp::BuildDescriptorHeaps()
 	auto grassTex = mTextures["grassTex"]->Resource;
 	auto waterTex = mTextures["waterTex"]->Resource;
 	auto fenceTex = mTextures["fenceTex"]->Resource;
+	auto woodTex = mTextures["woodTex"]->Resource;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -611,6 +649,12 @@ void ShapesApp::BuildDescriptorHeaps()
 
 	srvDesc.Format = fenceTex->GetDesc().Format;
 	md3dDevice->CreateShaderResourceView(fenceTex.Get(), &srvDesc, hDescriptor);
+
+	//Wood descriptor
+	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+	srvDesc.Format = woodTex->GetDesc().Format;
+	md3dDevice->CreateShaderResourceView(woodTex.Get(), &srvDesc, hDescriptor);
 }
 
 void ShapesApp::BuildShadersAndInputLayout()
@@ -996,9 +1040,19 @@ void ShapesApp::BuildMaterials()
 	wirefence->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
 	wirefence->Roughness = 0.25f;
 
+
+	auto wood = std::make_unique<Material>();
+	wood->Name = "wood";
+	wood->MatCBIndex = 2;
+	wood->DiffuseSrvHeapIndex = 2;
+	wood->DiffuseAlbedo = XMFLOAT4(Colors::SandyBrown);
+	wood->FresnelR0 = XMFLOAT3(0.15f, 0.18f, 0.18f);
+	wood->Roughness = 0.25f;
+
 	mMaterials["grass"] = std::move(grass);
 	mMaterials["water"] = std::move(water);
 	mMaterials["wirefence"] = std::move(wirefence);
+	mMaterials["wood"] = std::move(wood);
 }
 
 //CREATED FUNCTION FOR RENDERING OBJECTS TO MAKE IT EASIER INTO THE ShapesApp::BuildRenderItems() function.
@@ -1007,7 +1061,7 @@ void ShapesApp::MakeThing(std::string name, std::string material, RenderLayer ty
 	auto item = std::make_unique<RenderItem>();
 
 	XMStoreFloat4x4(&item->World, XMMatrixScaling(scaleX, scaleY, scaleZ) * XMMatrixTranslation(posX, posY, posZ) * XMMatrixRotationRollPitchYaw(pitch, yaw, roll));
-	XMStoreFloat4x4(&item->TexTransform, XMMatrixScaling(1.0f, 1.0f, 1.0f));
+	XMStoreFloat4x4(&item->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
 	item->ObjCBIndex = objectIndexnumber;
 
 	item->Mat = mMaterials[material].get();
@@ -1068,22 +1122,22 @@ void ShapesApp::BuildRenderItems()
 	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 4.0f, 0.325f, 10.5f);
 
 	//right side spikes
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -28.0f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -30.25f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -32.5f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -34.75f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -37.0f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -39.25f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -41.5f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -28.0f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -30.25f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -32.5f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -34.75f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -37.0f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -39.25f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -41.5f);
 
 	//left side spikes
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -28.0f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -30.25f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -32.5f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -34.75f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -37.0f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -39.25f);
-	MakeThing("spike", "grass", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -41.5f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -28.0f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -30.25f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -32.5f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -34.75f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -37.0f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -39.25f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -41.5f);
 
 	/*-------------------- CASTLE WINDOWS -------------------*/
 	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f);
@@ -1094,8 +1148,8 @@ void ShapesApp::BuildRenderItems()
 	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
 
 	/*-------------------- CASTLE DRAWBRIDGE -------------------*/
-	MakeThing("wedge", "grass", RenderLayer::Opaque, 5.0f, 20.0f, 10.0f, 0.0f, 35.0f, 0.0f, 0, -90 * (XM_PI / 180), 90 * (XM_PI / 180));
-	MakeThing("wedge", "grass", RenderLayer::Opaque, 5.0f, 20.0f, 10.0f, 0.0f, -55.1f, 0.0f, 0, 90 * (XM_PI / 180), 90 * (XM_PI / 180));
+	MakeThing("wedge", "wood", RenderLayer::Opaque, 5.0f, 20.0f, 10.0f, 0.0f, 35.0f, 0.0f, 0, -90 * (XM_PI / 180), 90 * (XM_PI / 180));
+	MakeThing("wedge", "wood", RenderLayer::Opaque, 5.0f, 20.0f, 10.0f, 0.0f, -55.1f, 0.0f, 0, 90 * (XM_PI / 180), 90 * (XM_PI / 180));
 
 }
 
