@@ -569,11 +569,19 @@ void ShapesApp::LoadTextures()
 		mCommandList.Get(), iceTex->Filename.c_str(),
 		iceTex->Resource, iceTex->UploadHeap));
 
+	auto metalTex = std::make_unique<Texture>();
+	metalTex->Name = "metalTex";
+	metalTex->Filename = L"../../Textures/metal.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), metalTex->Filename.c_str(),
+		metalTex->Resource, metalTex->UploadHeap));
+
 	mTextures[grassTex->Name] = std::move(grassTex);
 	mTextures[waterTex->Name] = std::move(waterTex);
 	mTextures[fenceTex->Name] = std::move(fenceTex);
 	mTextures[woodTex->Name] = std::move(woodTex);
 	mTextures[iceTex->Name] = std::move(iceTex);
+	mTextures[metalTex->Name] = std::move(metalTex);
 }
 
 void ShapesApp::BuildRootSignature()
@@ -624,7 +632,7 @@ void ShapesApp::BuildDescriptorHeaps()
 	// Create the SRV heap.
 	//
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 6; //
+	srvHeapDesc.NumDescriptors =6; //
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
@@ -639,6 +647,7 @@ void ShapesApp::BuildDescriptorHeaps()
 	auto fenceTex = mTextures["fenceTex"]->Resource;
 	auto woodTex = mTextures["woodTex"]->Resource;
 	auto iceTex = mTextures["iceTex"]->Resource;
+	auto metalTex = mTextures["metalTex"]->Resource;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -671,6 +680,12 @@ void ShapesApp::BuildDescriptorHeaps()
 
 	srvDesc.Format = iceTex->GetDesc().Format;
 	md3dDevice->CreateShaderResourceView(iceTex.Get(), &srvDesc, hDescriptor);
+
+	//metal descriptor
+	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+	srvDesc.Format = metalTex->GetDesc().Format;
+	md3dDevice->CreateShaderResourceView(metalTex.Get(), &srvDesc, hDescriptor);
 
 }
 
@@ -1016,8 +1031,6 @@ void ShapesApp::BuildPSOs()
 
 }
 
-
-
 void ShapesApp::BuildFrameResources()
 {
 	for (int i = 0; i < gNumFrameResources; ++i)
@@ -1073,11 +1086,20 @@ void ShapesApp::BuildMaterials()
 	ice->FresnelR0 = XMFLOAT3(0.15f, 0.18f, 0.18f);
 	ice->Roughness = 0.25f;
 
+	auto metal = std::make_unique<Material>();
+	metal->Name = "metal";
+	metal->MatCBIndex = 5;
+	metal->DiffuseSrvHeapIndex = 5;
+	metal->DiffuseAlbedo = XMFLOAT4(Colors::DarkGray);
+	metal->FresnelR0 = XMFLOAT3(0.15f, 0.18f, 0.18f);
+	metal->Roughness = 0.25f;
+
 	mMaterials["grass"] = std::move(grass);
 	mMaterials["water"] = std::move(water);
 	mMaterials["wirefence"] = std::move(wirefence);
 	mMaterials["wood"] = std::move(wood);
 	mMaterials["ice"] = std::move(ice);
+	mMaterials["metal"] = std::move(metal);
 }
 
 //CREATED FUNCTION FOR RENDERING OBJECTS TO MAKE IT EASIER INTO THE ShapesApp::BuildRenderItems() function.
@@ -1131,20 +1153,20 @@ void ShapesApp::BuildRenderItems()
 	MakeThing("cone", "wirefence", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, -25.0f); //Front Right
 
 	/*-------------------- CASTLE DOOR -------------------*/
-	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 10.0f, 10.0f, 10.0f, 0.0f, 7.5f, -25.0f);
+	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 10.0f, 10.0f, 10.0f, 0.0f, 7.5f, -25.0f);
 
 	/*-------------------- DIAMOND & PEDESTAL -------------------*/
 	MakeThing("box", "wirefence", RenderLayer::Opaque, 1.0f, 5.0f, 1.0f, 0.0f, 0.0f, 10.0f);
 	MakeThing("diamond", "ice", RenderLayer::Opaque, 1.0f, 2.5f, 1.0f, 0.0f, 4.0f, 10.0f);
 
 	/*-------------------- CALTROPS -------------------*/
-	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -2.0f, 0.325f, 8.0f);
-	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 2.0f, 0.325f, 7.2f);
-	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -1.8f, 0.325f, 10.0f);
-	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 0.0f, 0.325f, 7.0f);
-	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 0.6f, 0.325f, 11.0f);
-	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -0.3f, 0.325f, 14.0f);
-	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 4.0f, 0.325f, 10.5f);
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -2.0f, 0.325f, 8.0f);
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 2.0f, 0.325f, 7.2f);
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -1.8f, 0.325f, 10.0f);
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 0.0f, 0.325f, 7.0f);
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 0.6f, 0.325f, 11.0f);
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -0.3f, 0.325f, 14.0f);
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 4.0f, 0.325f, 10.5f);
 
 	//right side spikes
 	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -28.0f);
@@ -1165,12 +1187,12 @@ void ShapesApp::BuildRenderItems()
 	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -41.5f);
 
 	/*-------------------- CASTLE WINDOWS -------------------*/
-	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f);
-	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f);
-	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
-	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
-	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
-	MakeThing("squarewindow", "grass", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
+	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f);
+	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f);
+	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
+	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
+	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
+	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
 
 	/*-------------------- CASTLE DRAWBRIDGE -------------------*/
 	MakeThing("wedge", "wood", RenderLayer::Opaque, 5.0f, 20.0f, 10.0f, 0.0f, 35.0f, 0.0f, 0, -90 * (XM_PI / 180), 90 * (XM_PI / 180));
