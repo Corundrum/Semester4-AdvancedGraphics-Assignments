@@ -561,11 +561,19 @@ void ShapesApp::LoadTextures()
 	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
 		mCommandList.Get(), woodTex->Filename.c_str(),
 		woodTex->Resource, woodTex->UploadHeap));
+	
+	auto iceTex = std::make_unique<Texture>();
+	iceTex->Name = "iceTex";
+	iceTex->Filename = L"../../Textures/ice.dds";
+	ThrowIfFailed(DirectX::CreateDDSTextureFromFile12(md3dDevice.Get(),
+		mCommandList.Get(), iceTex->Filename.c_str(),
+		iceTex->Resource, iceTex->UploadHeap));
 
 	mTextures[grassTex->Name] = std::move(grassTex);
 	mTextures[waterTex->Name] = std::move(waterTex);
 	mTextures[fenceTex->Name] = std::move(fenceTex);
 	mTextures[woodTex->Name] = std::move(woodTex);
+	mTextures[iceTex->Name] = std::move(iceTex);
 }
 
 void ShapesApp::BuildRootSignature()
@@ -574,7 +582,7 @@ void ShapesApp::BuildRootSignature()
 	texTable.Init(D3D12_DESCRIPTOR_RANGE_TYPE_SRV, 1, 0);
 
 	// Root parameter can be a table, root descriptor or root constants.
-	CD3DX12_ROOT_PARAMETER slotRootParameter[5];
+	CD3DX12_ROOT_PARAMETER slotRootParameter[6];
 
 	// Perfomance TIP: Order from most frequent to least frequent.
 	slotRootParameter[0].InitAsDescriptorTable(1, &texTable, D3D12_SHADER_VISIBILITY_PIXEL);
@@ -582,6 +590,7 @@ void ShapesApp::BuildRootSignature()
 	slotRootParameter[2].InitAsConstantBufferView(1);
 	slotRootParameter[3].InitAsConstantBufferView(2);
 	slotRootParameter[4].InitAsConstantBufferView(3);
+	slotRootParameter[5].InitAsConstantBufferView(4);
 
 	auto staticSamplers = GetStaticSamplers();
 
@@ -615,7 +624,7 @@ void ShapesApp::BuildDescriptorHeaps()
 	// Create the SRV heap.
 	//
 	D3D12_DESCRIPTOR_HEAP_DESC srvHeapDesc = {};
-	srvHeapDesc.NumDescriptors = 5;
+	srvHeapDesc.NumDescriptors = 6; //
 	srvHeapDesc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 	srvHeapDesc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 	ThrowIfFailed(md3dDevice->CreateDescriptorHeap(&srvHeapDesc, IID_PPV_ARGS(&mSrvDescriptorHeap)));
@@ -629,6 +638,7 @@ void ShapesApp::BuildDescriptorHeaps()
 	auto waterTex = mTextures["waterTex"]->Resource;
 	auto fenceTex = mTextures["fenceTex"]->Resource;
 	auto woodTex = mTextures["woodTex"]->Resource;
+	auto iceTex = mTextures["iceTex"]->Resource;
 
 	D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
 	srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
@@ -655,6 +665,13 @@ void ShapesApp::BuildDescriptorHeaps()
 
 	srvDesc.Format = woodTex->GetDesc().Format;
 	md3dDevice->CreateShaderResourceView(woodTex.Get(), &srvDesc, hDescriptor);
+	
+	//ice descriptor
+	hDescriptor.Offset(1, mCbvSrvDescriptorSize);
+
+	srvDesc.Format = iceTex->GetDesc().Format;
+	md3dDevice->CreateShaderResourceView(iceTex.Get(), &srvDesc, hDescriptor);
+
 }
 
 void ShapesApp::BuildShadersAndInputLayout()
@@ -1029,7 +1046,6 @@ void ShapesApp::BuildMaterials()
 	//step 6: what happens if you change the alpha to 1.0? 100% water and no blending?
 	water->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.6f);
 	water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
-
 	water->Roughness = 0.0f;
 
 	auto wirefence = std::make_unique<Material>();
@@ -1049,10 +1065,19 @@ void ShapesApp::BuildMaterials()
 	wood->FresnelR0 = XMFLOAT3(0.15f, 0.18f, 0.18f);
 	wood->Roughness = 0.25f;
 
+	auto ice = std::make_unique<Material>();
+	ice->Name = "ice";
+	ice->MatCBIndex = 4;
+	ice->DiffuseSrvHeapIndex = 4;
+	ice->DiffuseAlbedo = XMFLOAT4(Colors::LightBlue);
+	ice->FresnelR0 = XMFLOAT3(0.15f, 0.18f, 0.18f);
+	ice->Roughness = 0.25f;
+
 	mMaterials["grass"] = std::move(grass);
 	mMaterials["water"] = std::move(water);
 	mMaterials["wirefence"] = std::move(wirefence);
 	mMaterials["wood"] = std::move(wood);
+	mMaterials["ice"] = std::move(ice);
 }
 
 //CREATED FUNCTION FOR RENDERING OBJECTS TO MAKE IT EASIER INTO THE ShapesApp::BuildRenderItems() function.
@@ -1110,7 +1135,7 @@ void ShapesApp::BuildRenderItems()
 
 	/*-------------------- DIAMOND & PEDESTAL -------------------*/
 	MakeThing("box", "wirefence", RenderLayer::Opaque, 1.0f, 5.0f, 1.0f, 0.0f, 0.0f, 10.0f);
-	MakeThing("diamond", "grass", RenderLayer::Opaque, 1.0f, 2.5f, 1.0f, 0.0f, 4.0f, 10.0f);
+	MakeThing("diamond", "ice", RenderLayer::Opaque, 1.0f, 2.5f, 1.0f, 0.0f, 4.0f, 10.0f);
 
 	/*-------------------- CALTROPS -------------------*/
 	MakeThing("caltrop", "grass", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -2.0f, 0.325f, 8.0f);
