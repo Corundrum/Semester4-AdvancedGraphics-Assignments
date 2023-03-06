@@ -456,6 +456,8 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
 	
+	mMainPassCB.gFogStart = 100.0f;
+
 	/*------------------------ LIGHTS ------------------------*/
 	
 	//Ambient
@@ -615,8 +617,8 @@ void ShapesApp::BuildShadersAndInputLayout()
 {
 	const D3D_SHADER_MACRO defines[] =
 	{
-		"NOFOG",
-		//	"FOG", 
+		//"NOFOG",
+			"FOG", 
 		"1", NULL, NULL
 	};
 
@@ -1005,9 +1007,9 @@ void ShapesApp::MakeThing(std::string name, std::string material, RenderLayer ty
 void ShapesApp::BuildRenderItems()
 {
 	/*-------------------- GRASSY GROUND --------------------*/
-	MakeThing("box", "grass", RenderLayer::Opaque, 256.0f, 10.0f, 100.0f, 0.0f, -5.0f, 20.0f);
-	MakeThing("box", "grass", RenderLayer::Opaque, 256.0f, 10.0f, 100.0f, 0.0f, -5.0f, -110.0f);
-	MakeThing("box", "grass", RenderLayer::Opaque, 256.0f, 5.0f, 100.0f, 0.0f, -10.0f, -45.0f);
+	MakeThing("box", "grass", RenderLayer::Opaque, 300.0f, 10.0f, 100.0f, 0.0f, -5.0f, 20.0f);
+	MakeThing("box", "grass", RenderLayer::Opaque, 300.0f, 10.0f, 100.0f, 0.0f, -5.0f, -110.0f);
+	MakeThing("box", "grass", RenderLayer::Opaque, 300.0f, 5.0f, 100.0f, 0.0f, -10.0f, -45.0f);
 	MakeThing("grid", "water", RenderLayer::Transparent, 10.0f, 1.0f, 1.0f, 0.0f, -0.2f, -45.0f);
 
 	/*-------------------- CASTLE WALLS -------------------*/
