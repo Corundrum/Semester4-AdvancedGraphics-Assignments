@@ -890,7 +890,7 @@ GeometryGenerator::MeshData GeometryGenerator::CreateDiamond(float radius, float
 	
 	float h2 = 0.5f * height;
 	float r = radius;
-	Vertex bottom = Vertex(0, -h2, 0, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	Vertex bottom = Vertex(0, -h2, 0, 0.0f, 0.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
 	
 	meshData.Vertices.push_back(bottom);
 
@@ -908,8 +908,8 @@ GeometryGenerator::MeshData GeometryGenerator::CreateDiamond(float radius, float
 
 			vertex.Position = XMFLOAT3(r * c, h2 * 0.6f, r * s);
 
-			vertex.TexC.x = (float)j / sliceCount;
-			vertex.TexC.y = 1.0f - (float)i;
+			vertex.TexC.x = (float)j / sliceCount * 1.2f;
+			vertex.TexC.y = 0.9f - (float)i;
 
 			vertex.TangentU = XMFLOAT3(-s, 0.0f, c);
 			
@@ -997,7 +997,7 @@ GeometryGenerator::MeshData GeometryGenerator::CreateDiamond(float radius, float
 			vertex.Position = XMFLOAT3((r * 0.65f) * c, h2, (r * 0.65f) * s);
 
 			vertex.TexC.x = (float)j / sliceCount;
-			vertex.TexC.y = 1.0f - (float)i;
+			vertex.TexC.y = 0.9f - (float)i;
 
 			vertex.TangentU = XMFLOAT3(-s, 0.0f, c);
 
@@ -1281,16 +1281,16 @@ GeometryGenerator::MeshData GeometryGenerator::CreateCaltrop(float depth, float 
 	//Outter
 	
 	//Centre
-	v[0] = Vertex(-cw, ch, cd, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-	v[1] = Vertex(cw, ch, cd, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-	v[2] = Vertex(0, ch, -cd, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
-	v[3] = Vertex(0, -ch, 0, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+	v[0] = Vertex(-cw, ch, cd, -1.0f, 1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[1] = Vertex(cw, ch, cd, 1.0f, 1.0f, 1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[2] = Vertex(0, ch, -cd, 0.0f, 1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 0.0f);
+	v[3] = Vertex(0, -ch, 0, 0.0f, -1.0f, 0.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 	
 	//Outter Points
-	v[4] = Vertex(0, h2, 0, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
-	v[5] = Vertex(-w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
-	v[6] = Vertex(w2, -h2, -d2, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
-	v[7] = Vertex(0, -h2, d2, 0.0f, 0.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+	v[4] = Vertex(0, h2, 0, 0.0f, 1.0f, 0.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	v[5] = Vertex(-w2, -h2, -d2, -1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
+	v[6] = Vertex(w2, -h2, -d2, 1.0f, -1.0f, -1.0f, 1.0f, 0.0f, 0.0f, 1.0f, 1.0f);
+	v[7] = Vertex(0, -h2, d2, 0.0f, -1.0f, 1.0f, -1.0f, 0.0f, 0.0f, 0.0f, 1.0f);
 	
 	meshData.Vertices.assign(&v[0], &v[8]);
 	

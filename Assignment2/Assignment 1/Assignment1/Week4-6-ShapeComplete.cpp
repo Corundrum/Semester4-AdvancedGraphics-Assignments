@@ -1050,13 +1050,11 @@ void ShapesApp::BuildMaterials()
 	grass->FresnelR0 = XMFLOAT3(0.01f, 0.01f, 0.01f);
 	grass->Roughness = 0.125f;
 
-	// This is not a good water material definition, but we do not have all the rendering
-	// tools we need (transparency, environment reflection), so we fake it for now.
+	
 	auto water = std::make_unique<Material>();
 	water->Name = "water";
 	water->MatCBIndex = 1;
 	water->DiffuseSrvHeapIndex = 1;
-	//step 6: what happens if you change the alpha to 1.0? 100% water and no blending?
 	water->DiffuseAlbedo = XMFLOAT4(1.0f, 1.0f, 1.0f, 0.6f);
 	water->FresnelR0 = XMFLOAT3(0.1f, 0.1f, 0.1f);
 	water->Roughness = 0.0f;
