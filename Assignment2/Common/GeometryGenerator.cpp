@@ -1026,6 +1026,7 @@ GeometryGenerator::MeshData GeometryGenerator::CreateDiamond(float radius, float
 	}
 
 	Vertex top = Vertex(0, h2, 0, 0.0f, 0.0f, -1.0f, 1.0f, 0.0f, 0.0f, 0.0f, 0.0f);
+	meshData.Vertices.push_back(top);
 
 	for (uint32 i = 1; i < sliceCount + 1; ++i)
 	{
