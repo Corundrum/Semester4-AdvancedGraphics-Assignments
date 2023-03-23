@@ -501,7 +501,8 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
 	
-	mMainPassCB.gFogStart = 100.0f;
+	mMainPassCB.FogColor = XMFLOAT4(0.25f, 0.55f, 0.6f, 1.0f);
+	mMainPassCB.gFogStart = 35.0f;
 
 	/*------------------------ LIGHTS ------------------------*/
 	
