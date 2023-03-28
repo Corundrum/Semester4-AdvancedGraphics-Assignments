@@ -113,7 +113,9 @@ private:
 
 	std::array<const CD3DX12_STATIC_SAMPLER_DESC, 6> GetStaticSamplers();
 
-	void MakeThing(std::string name, std::string material, RenderLayer type, float scaleX, float scaleY, float scaleZ, float posX, float posY, float posZ, float pitch = 0, float yaw = 0, float roll = 0);
+
+
+	void MakeThing(std::string name, std::string material, RenderLayer type, XMFLOAT3 objectScale, XMFLOAT3 objectPos, XMFLOAT2 textureScale, XMFLOAT3 ObjectRotation = XMFLOAT3(0,0,0));
 
 private:
 
@@ -1270,12 +1272,12 @@ void ShapesApp::BuildMaterials()
 }
 
 //CREATED FUNCTION FOR RENDERING OBJECTS TO MAKE IT EASIER INTO THE ShapesApp::BuildRenderItems() function.
-void ShapesApp::MakeThing(std::string name, std::string material, RenderLayer type, float scaleX, float scaleY, float scaleZ, float posX, float posY, float posZ, float pitch, float yaw, float roll)
+void ShapesApp::MakeThing(std::string name, std::string material, RenderLayer type, XMFLOAT3 objectScale, XMFLOAT3 objectPos, XMFLOAT2 textureScale, XMFLOAT3 ObjectRotation)
 {
 	auto item = std::make_unique<RenderItem>();
 
-	XMStoreFloat4x4(&item->World, XMMatrixScaling(scaleX, scaleY, scaleZ) * XMMatrixTranslation(posX, posY, posZ) * XMMatrixRotationRollPitchYaw(pitch, yaw, roll));
-	XMStoreFloat4x4(&item->TexTransform, XMMatrixScaling(5.0f, 5.0f, 1.0f));
+	XMStoreFloat4x4(&item->World, XMMatrixScaling(objectScale.x, objectScale.y, objectScale.z) * XMMatrixRotationRollPitchYaw(ObjectRotation.x * (XM_PI / 180), ObjectRotation.y * (XM_PI / 180), ObjectRotation.z * (XM_PI / 180)) * XMMatrixTranslation(objectPos.x, objectPos.y, objectPos.z));
+	XMStoreFloat4x4(&item->TexTransform, XMMatrixScaling(textureScale.x, textureScale.y, 1.0f));
 	item->ObjCBIndex = objectIndexnumber;
 
 	item->Mat = mMaterials[material].get();
@@ -1314,75 +1316,68 @@ void ShapesApp::BuildRenderItems()
 	
 	objectIndexnumber++;
 
+
 	/*-------------------- GRASSY GROUND --------------------*/
-	MakeThing("box", "grass", RenderLayer::Opaque, 300.0f, 10.0f, 100.0f, 0.0f, -5.0f, 20.0f);
-	MakeThing("box", "grass", RenderLayer::Opaque, 300.0f, 10.0f, 100.0f, 0.0f, -5.0f, -110.0f);
-	MakeThing("box", "grass", RenderLayer::Opaque, 300.0f, 5.0f, 100.0f, 0.0f, -10.0f, -45.0f);
-	MakeThing("grid", "water", RenderLayer::Transparent, 10.0f, 1.0f, 1.0f, 0.0f, -0.2f, -45.0f);
+	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 10.0f, 100.0f }, { 0.0f, -5.0f, 20.0f }, { 25.0f, 25.0f });
+	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 10.0f, 100.0f }, { 0.0f, -5.0f, -110.0f }, { 25.0f, 25.0f });
+	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 5.0f, 100.0f }, { 0.0f, -10.0f, -45.0f }, { 25.0f, 25.0f });
+	MakeThing("grid", "water", RenderLayer::Transparent, { 10.0f, 1.0f, 10.0f }, { 0.0f, -0.2f, -45.0f }, { 5.0f, 5.0f });
 
 	/*-------------------- CASTLE WALLS -------------------*/
-	MakeThing("box", "wirefence", RenderLayer::Opaque, 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, 25.0f); //back wall
-	MakeThing("box", "wirefence", RenderLayer::Opaque, 3.0f, 15.0f, 50.0f, 25.0f, 7.5f, 0.0f); //right wall
-	MakeThing("box", "wirefence", RenderLayer::Opaque, 3.0f, 15.0f, 50.0f, -25.0f, 7.5f, 0.0f); //left wall
-	MakeThing("box", "wirefence", RenderLayer::Opaque, 50.0f, 15.0f, 3.0f, 0.0f, 7.5f, -25.0f); //front wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 50.0f, 15.0f, 3.0f }, { 0.0f, 7.5f, 25.0f }, { 5.0f, 5.0f }); //back wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 3.0f, 15.0f, 50.0f }, { 25.0f, 7.5f, 0.0f }, { 5.0f, 5.0f }); //right wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 3.0f, 15.0f, 50.0f }, { -25.0f, 7.5f, 0.0f }, { 5.0f, 5.0f }); //left wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 50.0f, 15.0f, 3.0f }, { 0.0f, 7.5f, -25.0f }, { 5.0f, 5.0f }); //front wall
 
 	/*-------------------- CASTLE CORNERS -------------------*/
-	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, 25.0f); //Back Left
-	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, 25.0f); //Back Right
-	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, -25.0f, 8.5f, -25.0f); //Front Left
-	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, 5.0f, 6.0f, 5.0f, 25.0f, 8.5f, -25.0f); //Front Right
+	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, { 5.0f, 6.0f, 5.0f }, { -25.0f, 8.5f, 25.0f }, { 5.0f, 5.0f }); //Back Left
+	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, { 5.0f, 6.0f, 5.0f }, { 25.0f, 8.5f, 25.0f }, { 5.0f, 5.0f }); //Back Right
+	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, { 5.0f, 6.0f, 5.0f }, { -25.0f, 8.5f, -25.0f }, { 5.0f, 5.0f }); //Front Left
+	MakeThing("cylinder", "wirefence", RenderLayer::Opaque, { 5.0f, 6.0f, 5.0f }, { 25.0f, 8.5f, -25.0f }, { 5.0f, 5.0f }); //Front Right
 
 	/*-------------------- CASTLE CORNER TOPS -------------------*/
-	MakeThing("cone", "wirefence", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, 25.0f); //Back Left
-	MakeThing("cone", "wirefence", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, 25.0f); //Back Right
-	MakeThing("cone", "wirefence", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, -25.0f, 21.0f, -25.0f); //Front Left
-	MakeThing("cone", "wirefence", RenderLayer::Opaque, 6.5f, 4.5f, 6.5f, 25.0f, 21.0f, -25.0f); //Front Right
+	MakeThing("cone", "wirefence", RenderLayer::Opaque, { 6.5f, 4.5f, 6.5f }, { -25.0f, 21.0f, 25.0f }, { 5.0f, 5.0f }); //Back Left
+	MakeThing("cone", "wirefence", RenderLayer::Opaque, { 6.5f, 4.5f, 6.5f }, { 25.0f, 21.0f, 25.0f }, { 5.0f, 5.0f }); //Back Right
+	MakeThing("cone", "wirefence", RenderLayer::Opaque, { 6.5f, 4.5f, 6.5f }, { -25.0f, 21.0f, -25.0f }, { 5.0f, 5.0f }); //Front Left
+	MakeThing("cone", "wirefence", RenderLayer::Opaque, { 6.5f, 4.5f, 6.5f }, { 25.0f, 21.0f, -25.0f }, { 5.0f, 5.0f }); //Front Right
 
 	/*-------------------- CASTLE DOOR -------------------*/
-	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 10.0f, 10.0f, 10.0f, 0.0f, 7.5f, -25.0f);
+	MakeThing("squarewindow", "metal", RenderLayer::Opaque, { 10.0f, 10.0f, 10.0f }, { 0.0f, 7.5f, -25.0f }, { 5.0f, 5.0f });
 
 	/*-------------------- DIAMOND & PEDESTAL -------------------*/
-	MakeThing("box", "wirefence", RenderLayer::Opaque, 1.0f, 5.0f, 1.0f, 0.0f, 0.0f, 10.0f);
-	MakeThing("diamond", "ice", RenderLayer::Opaque, 1.0f, 2.5f, 1.0f, 0.0f, 4.0f, 10.0f);
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 5.0f, 1.0f }, { 0.0f, 0.0f, 10.0f }, { 5.0f, 5.0f });
+	MakeThing("diamond", "ice", RenderLayer::Opaque, { 1.0f, 2.5f, 1.0f }, { 0.0f, 4.0f, 10.0f }, { 5.0f, 5.0f });
 
 	/*-------------------- CALTROPS -------------------*/
-	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -2.0f, 0.325f, 8.0f);
-	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 2.0f, 0.325f, 7.2f);
-	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -1.8f, 0.325f, 10.0f);
-	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 0.0f, 0.325f, 7.0f);
-	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 0.6f, 0.325f, 11.0f);
-	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, -0.3f, 0.325f, 14.0f);
-	MakeThing("caltrop", "metal", RenderLayer::Opaque, 0.7f, 0.7f, 0.7f, 4.0f, 0.325f, 10.5f);
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, { 0.7f, 0.7f, 0.7f }, { -2.0f, 0.325f, 8.0f }, { 5.0f, 5.0f });
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, { 0.7f, 0.7f, 0.7f }, { 2.0f, 0.325f, 7.2f }, { 5.0f, 5.0f });
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, { 0.7f, 0.7f, 0.7f }, { -1.8f, 0.325f, 10.0f }, { 5.0f, 5.0f });
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, { 0.7f, 0.7f, 0.7f }, { 0.0f, 0.325f, 7.0f }, { 5.0f, 5.0f });
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, { 0.7f, 0.7f, 0.7f }, { 0.6f, 0.325f, 11.0f }, { 5.0f, 5.0f });
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, { 0.7f, 0.7f, 0.7f }, { -0.3f, 0.325f, 14.0f }, { 5.0f, 5.0f });
+	MakeThing("caltrop", "metal", RenderLayer::Opaque, { 0.7f, 0.7f, 0.7f }, { 4.0f, 0.325f, 10.5f }, { 5.0f, 5.0f });
 
 	//right side spikes
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -28.0f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -30.25f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -32.5f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -34.75f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -37.0f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -39.25f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, 6.0f, 0.0f, -41.5f);
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { 6.0f, 0.0f, -28.0f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { 6.0f, 0.0f, -30.25f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { 6.0f, 0.0f, -32.5f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { 6.0f, 0.0f, -34.75f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { 6.0f, 0.0f, -37.0f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { 6.0f, 0.0f, -39.25f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { 6.0f, 0.0f, -41.5f }, { 5.0f, 5.0f });
 
 	//left side spikes
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -28.0f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -30.25f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -32.5f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -34.75f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -37.0f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -39.25f);
-	MakeThing("spike", "wood", RenderLayer::Opaque, 0.6f, 8.0f, 0.6f, -6.0f, 0.0f, -41.5f);
-
-	/*-------------------- CASTLE WINDOWS -------------------*/
-	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f);
-	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f);
-	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
-	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, 25.0f, 0.0f, 90 * (XM_PI / 180));
-	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, 12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
-	MakeThing("squarewindow", "metal", RenderLayer::Opaque, 2.0f, 2.0f, 7.0f, -12.5f, 7.5f, -25.0f, 0.0f, 90 * (XM_PI / 180));
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { -6.0f, 0.0f, -28.0f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { -6.0f, 0.0f, -30.25f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { -6.0f, 0.0f, -32.5f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { -6.0f, 0.0f, -34.75f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { -6.0f, 0.0f, -37.0f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { -6.0f, 0.0f, -39.25f }, { 5.0f, 5.0f });
+	MakeThing("spike", "wood", RenderLayer::Opaque, { 0.6f, 8.0f, 0.6f }, { -6.0f, 0.0f, -41.5f }, { 5.0f, 5.0f });
 
 	/*-------------------- CASTLE DRAWBRIDGE -------------------*/
-	MakeThing("wedge", "wood", RenderLayer::Opaque, 5.0f, 20.0f, 10.0f, 0.0f, 35.0f, 0.0f, 0, -90 * (XM_PI / 180), 90 * (XM_PI / 180));
-	MakeThing("wedge", "wood", RenderLayer::Opaque, 5.0f, 20.0f, 10.0f, 0.0f, -55.1f, 0.0f, 0, 90 * (XM_PI / 180), 90 * (XM_PI / 180));
+	MakeThing("wedge", "wood", RenderLayer::Opaque, { 5.0f, 20.0f, 10.0f }, { 0.0f, -2.0f, -35.0f }, { 5.0f, 5.0f }, { 0.0f, -90.0f, 90.0f });
+	MakeThing("wedge", "wood", RenderLayer::Opaque, { 5.0f, 20.0f, 10.0f }, { 0.0f, -2.0f, -55.1f }, { 5.0f, 5.0f }, { 0.0f, 90.0f, 90.0f });
 }
 
 void ShapesApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems)
