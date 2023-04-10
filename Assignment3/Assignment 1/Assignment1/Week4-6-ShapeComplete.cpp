@@ -57,6 +57,9 @@ struct RenderItem
 	Material* Mat = nullptr;
 	MeshGeometry* Geo = nullptr;
 
+	std::string name;
+	BoundingBox box;
+
 	// Primitive topology.
 	D3D12_PRIMITIVE_TOPOLOGY PrimitiveType = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
 
@@ -98,6 +101,7 @@ private:
 	void UpdateObjectCBs(const GameTimer& gt);
 	void UpdateMaterialCBs(const GameTimer& gt);
 	void UpdateMainPassCB(const GameTimer& gt);
+	void Collision();
 
 	void LoadTextures();
 	void BuildRootSignature();
@@ -147,6 +151,8 @@ private:
 	PassConstants mMainPassCB;
 
 	Camera mCamera;
+	BoundingBox player;
+
 
 	POINT mLastMousePos;
 	UINT objectIndexnumber = 0;
@@ -200,6 +206,9 @@ bool ShapesApp::Initialize()
 
 	mCamera.SetPosition(0.0f, 3.0f, -150.0f);
 
+	player.Center = mCamera.GetPosition3f();
+	player.Extents = XMFLOAT3(1.2f, 0.6f, 1.2f);
+
 	LoadTextures();
 	BuildRootSignature();
 	BuildDescriptorHeaps();
@@ -248,11 +257,12 @@ void ShapesApp::Update(const GameTimer& gt)
 		CloseHandle(eventHandle);
 	}
 
-
 	AnimateMaterials(gt);
 	UpdateObjectCBs(gt);
 	UpdateMaterialCBs(gt);
 	UpdateMainPassCB(gt);
+
+	Collision();
 }
 
 void ShapesApp::Draw(const GameTimer& gt)
@@ -385,6 +395,7 @@ void ShapesApp::OnKeyboardInput(const GameTimer& gt)
 		mCamera.Strafe(10.0f * dt);
 
 	mCamera.SetPosition(mCamera.GetPosition3f().x, 3.0f, mCamera.GetPosition3f().z);
+	player.Center = mCamera.GetPosition3f();
 
 	mCamera.UpdateViewMatrix();
 }
@@ -535,6 +546,52 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
 }
+
+float Sign(const float value)
+{
+	return (value < 0.0f) ? -1.0f : 1.0f;
+}
+
+void ShapesApp::Collision()
+{
+	for (int i = 0; i < mAllRitems.size(); i++)
+	{
+		if (mAllRitems[i]->name == "box")
+		{
+
+			float distX = mAllRitems[i]->box.Center.x - player.Center.x;
+			float distY = mAllRitems[i]->box.Center.z - player.Center.z;
+
+			float sumX = player.Extents.x + mAllRitems[i]->box.Extents.x;
+			float sumY = player.Extents.z + mAllRitems[i]->box.Extents.y;
+
+			float overX = sumX - abs(distX);
+			float overY = sumY - abs(distY);
+
+			if (overX < 0 || overY < 0)
+			{
+				continue;
+			}
+
+			XMFLOAT2 contact_normal;
+			XMFLOAT3 min_trans;
+
+			if (overX < overY)
+			{
+				contact_normal = XMFLOAT2(Sign(distX), 0.0f);
+				min_trans = XMFLOAT3(contact_normal.x * overX, 0.0f, 0.0f);
+			}
+			else
+			{
+				contact_normal = XMFLOAT2(0.0f, Sign(distY));
+				min_trans = XMFLOAT3(0.0f, 0.0f, contact_normal.y * overY);
+			}
+
+			mCamera.SetPosition(mCamera.GetPosition3f().x - min_trans.x, mCamera.GetPosition3f().y - min_trans.y, mCamera.GetPosition3f().z - min_trans.z);
+		}
+	}
+}
+
 
 void ShapesApp::LoadTextures()
 {
@@ -872,7 +929,6 @@ void ShapesApp::BuildShapeGeometry()
 		spike.Vertices.size() + 
 		squarewindow.Vertices.size() +
 		caltrop.Vertices.size();
-
 
 	std::vector<Vertex> vertices(totalVertexCount);
 
@@ -1260,6 +1316,14 @@ void ShapesApp::MakeThing(std::string name, std::string material, RenderLayer ty
 {
 	auto item = std::make_unique<RenderItem>();
 
+	item->name = name;
+
+	if (name == "box")
+	{
+		item->box.Center = objectPos;
+		item->box.Extents = XMFLOAT3(objectScale.x, objectScale.y, objectScale.z);
+	}
+	
 	XMStoreFloat4x4(&item->World, XMMatrixScaling(objectScale.x, objectScale.y, objectScale.z) * XMMatrixRotationRollPitchYaw(ObjectRotation.x * (XM_PI / 180), ObjectRotation.y * (XM_PI / 180), ObjectRotation.z * (XM_PI / 180)) * XMMatrixTranslation(objectPos.x, objectPos.y, objectPos.z));
 	XMStoreFloat4x4(&item->TexTransform, XMMatrixScaling(textureScale.x, textureScale.y, 1.0f));
 	item->ObjCBIndex = objectIndexnumber;
@@ -1300,6 +1364,14 @@ void ShapesApp::BuildRenderItems()
 	
 	objectIndexnumber++;
 
+	/*-------------------- MAZE --------------------*/
+
+	//MakeThing("box", "grass", RenderLayer::Opaque, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f, -150.0f }, { 5.0f, 5.0f });
+
+
+	//MakeThing("box", "grass", RenderLayer::Opaque, { 3.0f, 15.0f, 25.0f }, { -10.0f, 5.0f, -135.0f }, { 5.0f, 5.0f });
+	//MakeThing("box", "grass", RenderLayer::Opaque, { 3.0f, 15.0f, 25.0f }, { 10.0f, 5.0f, -135.0f }, { 5.0f, 5.0f });
+	//MakeThing("box", "grass", RenderLayer::Opaque, { 10.0f, 10.0f, 10.0f }, { 0.0f, 5.0f, -120.0f }, { 5.0f, 5.0f });
 
 	/*-------------------- GRASSY GROUND --------------------*/
 	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 10.0f, 100.0f }, { 0.0f, -5.0f, 20.0f }, { 25.0f, 25.0f });
