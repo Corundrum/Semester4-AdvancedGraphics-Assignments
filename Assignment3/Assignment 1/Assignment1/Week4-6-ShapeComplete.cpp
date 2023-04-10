@@ -394,6 +394,12 @@ void ShapesApp::OnKeyboardInput(const GameTimer& gt)
 	if (GetAsyncKeyState('D') & 0x8000)
 		mCamera.Strafe(10.0f * dt);
 
+	if (GetAsyncKeyState('P') & 0x8000)
+		mCamera.Pedestal(10.0f * dt);
+
+	if (GetAsyncKeyState('O') & 0x8000)
+		mCamera.Pedestal(-10.0f * dt);
+
 	mCamera.SetPosition(mCamera.GetPosition3f().x, 3.0f, mCamera.GetPosition3f().z);
 	player.Center = mCamera.GetPosition3f();
 
@@ -498,26 +504,25 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.TotalTime = gt.TotalTime();
 	mMainPassCB.DeltaTime = gt.DeltaTime();
 	
-	mMainPassCB.FogColor = XMFLOAT4(0.25f, 0.55f, 0.6f, 1.0f);
-	mMainPassCB.gFogStart = 35.0f;
+	mMainPassCB.FogColor = XMFLOAT4(0.125f, 0.26f, 0.3f, 0.5f);
+	mMainPassCB.gFogStart = 70.0f;
 
 	/*------------------------ LIGHTS ------------------------*/
 	
 	//Ambient
+	mMainPassCB.AmbientLight = { 0.01f, 0.01f, 0.01f, 0.5f };
 
-	mMainPassCB.AmbientLight = { 0.25f, 0.25f, 0.35f, 1.0f };
-	
 
 	//Directional/Parallel
 
 	mMainPassCB.Lights[0].Direction = { 0.57735f, -0.57735f, 0.57735f };
-	mMainPassCB.Lights[0].Strength = { 0.6f, 0.6f, 0.2f };
+	mMainPassCB.Lights[0].Strength = { 0.2f, 0.2f, 0.066f };
 	
 	mMainPassCB.Lights[1].Direction = { -0.57735f, -0.57735f, 0.57735f };
-	mMainPassCB.Lights[1].Strength = { 0.3f, 0.3f, 0.3f };
+	mMainPassCB.Lights[1].Strength = { 0.1f, 0.1f, 0.1f };
 	
 	mMainPassCB.Lights[2].Direction = { 0.0f, -0.707f, -0.707f };
-	mMainPassCB.Lights[2].Strength = { 0.15f, 0.15f, 0.15f };
+	mMainPassCB.Lights[2].Strength = { 0.045f, 0.045f, 0.045f };
 
 
 	//Point
@@ -525,24 +530,31 @@ void ShapesApp::UpdateMainPassCB(const GameTimer& gt)
 	mMainPassCB.Lights[3].Position = { -22.0f, 28.0f, 22.0f };
 	mMainPassCB.Lights[3].Strength = { 1.0f, 0.0f, 0.0f };
 	mMainPassCB.Lights[3].FalloffStart = 20.0f;
-	mMainPassCB.Lights[3].FalloffEnd = 28.0f;
+	mMainPassCB.Lights[3].FalloffEnd = 35.0f;
 	
 	mMainPassCB.Lights[4].Position = { 22.0f, 28.0f, 22.0f };
 	mMainPassCB.Lights[4].Strength = { 0.0f, 0.75f, 1.0f };
 	mMainPassCB.Lights[4].FalloffStart = 20.0f;
-	mMainPassCB.Lights[4].FalloffEnd = 28.0f;
+	mMainPassCB.Lights[4].FalloffEnd = 35.0f;
 	
 	mMainPassCB.Lights[5].Position = { -22.0f, 28.0f, -22.0f };
 	mMainPassCB.Lights[5].Strength = { 0.0f, 0.8f, 0.0f };
 	mMainPassCB.Lights[5].FalloffStart = 20.0f;
-	mMainPassCB.Lights[5].FalloffEnd = 28.0f;
+	mMainPassCB.Lights[5].FalloffEnd = 35.0f;
 	
 	mMainPassCB.Lights[6].Position = { 22.0f, 28.0f, -22.0f };
 	mMainPassCB.Lights[6].Strength = { 0.4f, 0.0f, 1.0f };
 	mMainPassCB.Lights[6].FalloffStart = 20.0f;
-	mMainPassCB.Lights[6].FalloffEnd = 28.0f;
+	mMainPassCB.Lights[6].FalloffEnd = 35.0f;
 	
-	
+
+	//Torch
+
+	mMainPassCB.Lights[7].Position = mCamera.GetPosition3f();
+	mMainPassCB.Lights[7].Strength = { 0.7f, 0.45f, 0.0f };
+	mMainPassCB.Lights[7].FalloffStart = 25.0f;
+	mMainPassCB.Lights[7].FalloffEnd = 50.0f;
+
 	auto currPassCB = mCurrFrameResource->PassCB.get();
 	currPassCB->CopyData(0, mMainPassCB);
 }

@@ -10,7 +10,7 @@
 #endif
 
 #ifndef NUM_POINT_LIGHTS
-    #define NUM_POINT_LIGHTS 4
+    #define NUM_POINT_LIGHTS 5
 #endif
 
 #ifndef NUM_SPOT_LIGHTS
