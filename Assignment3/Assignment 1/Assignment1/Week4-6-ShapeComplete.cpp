@@ -207,7 +207,7 @@ bool ShapesApp::Initialize()
 	mCamera.SetPosition(0.0f, 3.0f, -150.0f);
 
 	player.Center = mCamera.GetPosition3f();
-	player.Extents = XMFLOAT3(1.2f, 0.6f, 1.2f);
+	player.Extents = XMFLOAT3(1.5f, 0.6f, 1.5f);
 
 	LoadTextures();
 	BuildRootSignature();
@@ -560,15 +560,15 @@ void ShapesApp::Collision()
 		{
 
 			float distX = mAllRitems[i]->box.Center.x - player.Center.x;
-			float distY = mAllRitems[i]->box.Center.z - player.Center.z;
+			float distZ = mAllRitems[i]->box.Center.z - player.Center.z;
 
 			float sumX = player.Extents.x + mAllRitems[i]->box.Extents.x;
-			float sumY = player.Extents.z + mAllRitems[i]->box.Extents.y;
+			float sumZ = player.Extents.z + mAllRitems[i]->box.Extents.z;
 
 			float overX = sumX - abs(distX);
-			float overY = sumY - abs(distY);
+			float overZ = sumZ - abs(distZ);
 
-			if (overX < 0 || overY < 0)
+			if (overX < 0 || overZ < 0)
 			{
 				continue;
 			}
@@ -576,15 +576,15 @@ void ShapesApp::Collision()
 			XMFLOAT2 contact_normal;
 			XMFLOAT3 min_trans;
 
-			if (overX < overY)
+			if (overX < overZ)
 			{
 				contact_normal = XMFLOAT2(Sign(distX), 0.0f);
 				min_trans = XMFLOAT3(contact_normal.x * overX, 0.0f, 0.0f);
 			}
 			else
 			{
-				contact_normal = XMFLOAT2(0.0f, Sign(distY));
-				min_trans = XMFLOAT3(0.0f, 0.0f, contact_normal.y * overY);
+				contact_normal = XMFLOAT2(0.0f, Sign(distZ));
+				min_trans = XMFLOAT3(0.0f, 0.0f, contact_normal.y * overZ);
 			}
 
 			mCamera.SetPosition(mCamera.GetPosition3f().x - min_trans.x, mCamera.GetPosition3f().y - min_trans.y, mCamera.GetPosition3f().z - min_trans.z);
@@ -1318,10 +1318,10 @@ void ShapesApp::MakeThing(std::string name, std::string material, RenderLayer ty
 
 	item->name = name;
 
-	if (name == "box")
+	if (name == "box" && material == "wirefence")
 	{
 		item->box.Center = objectPos;
-		item->box.Extents = XMFLOAT3(objectScale.x, objectScale.y, objectScale.z);
+		item->box.Extents = XMFLOAT3(objectScale.x * 0.5f, objectScale.y * 0.5f, objectScale.z * 0.5);
 	}
 	
 	XMStoreFloat4x4(&item->World, XMMatrixScaling(objectScale.x, objectScale.y, objectScale.z) * XMMatrixRotationRollPitchYaw(ObjectRotation.x * (XM_PI / 180), ObjectRotation.y * (XM_PI / 180), ObjectRotation.z * (XM_PI / 180)) * XMMatrixTranslation(objectPos.x, objectPos.y, objectPos.z));
@@ -1365,13 +1365,6 @@ void ShapesApp::BuildRenderItems()
 	objectIndexnumber++;
 
 	/*-------------------- MAZE --------------------*/
-
-	//MakeThing("box", "grass", RenderLayer::Opaque, { 1.0f, 1.0f, 1.0f }, { 0.0f, 1.0f, -150.0f }, { 5.0f, 5.0f });
-
-
-	//MakeThing("box", "grass", RenderLayer::Opaque, { 3.0f, 15.0f, 25.0f }, { -10.0f, 5.0f, -135.0f }, { 5.0f, 5.0f });
-	//MakeThing("box", "grass", RenderLayer::Opaque, { 3.0f, 15.0f, 25.0f }, { 10.0f, 5.0f, -135.0f }, { 5.0f, 5.0f });
-	//MakeThing("box", "grass", RenderLayer::Opaque, { 10.0f, 10.0f, 10.0f }, { 0.0f, 5.0f, -120.0f }, { 5.0f, 5.0f });
 
 	/*-------------------- GRASSY GROUND --------------------*/
 	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 10.0f, 100.0f }, { 0.0f, -5.0f, 20.0f }, { 25.0f, 25.0f });
