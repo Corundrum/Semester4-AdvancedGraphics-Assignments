@@ -1330,6 +1330,8 @@ void ShapesApp::MakeThing(std::string name, std::string material, RenderLayer ty
 
 	item->name = name;
 
+
+	//Collision for maze, detected if the shape is a box and if the material is a "wirefence" (the brick material we made)
 	if (name == "box" && material == "wirefence")
 	{
 		item->box.Center = objectPos;
@@ -1379,9 +1381,9 @@ void ShapesApp::BuildRenderItems()
 	/*-------------------- MAZE --------------------*/
 
 	/*-------------------- GRASSY GROUND --------------------*/
-	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 10.0f, 100.0f }, { 0.0f, -5.0f, 20.0f }, { 25.0f, 25.0f });
-	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 10.0f, 100.0f }, { 0.0f, -5.0f, -110.0f }, { 25.0f, 25.0f });
-	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 5.0f, 100.0f }, { 0.0f, -10.0f, -45.0f }, { 25.0f, 25.0f });
+	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 10.0f, 100.0f }, { 0.0f, -5.0f, 20.0f }, { 150.0f, 50.0f });
+	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 10.0f, 100.0f }, { 0.0f, -5.0f, -110.0f }, { 150.0f, 50.0f });
+	MakeThing("box", "grass", RenderLayer::Opaque, { 300.0f, 5.0f, 100.0f }, { 0.0f, -10.0f, -45.0f }, { 150.0f, 50.0f });
 	MakeThing("grid", "water", RenderLayer::Transparent, { 10.0f, 1.0f, 10.0f }, { 0.0f, -0.2f, -45.0f }, { 5.0f, 5.0f });
 
 	/*-------------------- CASTLE WALLS -------------------*/
@@ -1439,7 +1441,16 @@ void ShapesApp::BuildRenderItems()
 	/*-------------------- CASTLE DRAWBRIDGE -------------------*/
 	MakeThing("wedge", "wood", RenderLayer::Opaque, { 5.0f, 20.0f, 10.0f }, { 0.0f, -2.0f, -35.0f }, { 5.0f, 5.0f }, { 0.0f, -90.0f, 90.0f });
 	MakeThing("wedge", "wood", RenderLayer::Opaque, { 5.0f, 20.0f, 10.0f }, { 0.0f, -2.0f, -55.1f }, { 5.0f, 5.0f }, { 0.0f, 90.0f, 90.0f });
+
+	/*------------------------ HEDGE MAZE ----------------------*/
+	MakeThing("box", "wirefence", RenderLayer::Opaque, {1.0f, 15.0f, 100.0f}, {-25.0f, 7.5f, -110.0f}, {5.0f, 5.0f}); //left outer wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 100.0f }, { 25.0f, 7.5f, -110.0f }, { 5.0f, 5.0f }); //right outer wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 50.0f, 15.0f, 1.0f }, { 0.0f, 7.5f, -160.0f }, { 5.0f, 5.0f }); //back outer wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { -15.0f, 7.5f, -60.0f }, { 5.0f, 5.0f }); //outer wall closest to castle, left side
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { 15.0f, 7.5f, -60.0f }, { 5.0f, 5.0f }); //outer wall closest to castle, right side
+
 }
+// std::string name, std::string material, RenderLayer type, XMFLOAT3 objectScale, XMFLOAT3 objectPos, XMFLOAT2 textureScale, XMFLOAT3 ObjectRotation
 
 void ShapesApp::DrawRenderItems(ID3D12GraphicsCommandList* cmdList, const std::vector<RenderItem*>& ritems)
 {
