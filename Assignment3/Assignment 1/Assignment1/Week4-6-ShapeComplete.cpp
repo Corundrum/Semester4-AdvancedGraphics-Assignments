@@ -1331,12 +1331,12 @@ void ShapesApp::MakeThing(std::string name, std::string material, RenderLayer ty
 	item->name = name;
 
 
-	////Collision for maze, detected if the shape is a box and if the material is a "wirefence" (the brick material we made)
-	//if (name == "box" && material == "wirefence")
-	//{
-	//	item->box.Center = objectPos;
-	//	item->box.Extents = XMFLOAT3(objectScale.x * 0.5f, objectScale.y * 0.5f, objectScale.z * 0.5);
-	//}
+	//Collision for maze, detected if the shape is a box and if the material is a "wirefence" (the brick material we made)
+	if (name == "box" && material == "wirefence")
+	{
+		item->box.Center = objectPos;
+		item->box.Extents = XMFLOAT3(objectScale.x * 0.5f, objectScale.y * 0.5f, objectScale.z * 0.5);
+	}
 	
 	XMStoreFloat4x4(&item->World, XMMatrixScaling(objectScale.x, objectScale.y, objectScale.z) * XMMatrixRotationRollPitchYaw(ObjectRotation.x * (XM_PI / 180), ObjectRotation.y * (XM_PI / 180), ObjectRotation.z * (XM_PI / 180)) * XMMatrixTranslation(objectPos.x, objectPos.y, objectPos.z));
 	XMStoreFloat4x4(&item->TexTransform, XMMatrixScaling(textureScale.x, textureScale.y, 1.0f));
@@ -1456,14 +1456,25 @@ void ShapesApp::BuildRenderItems()
 
 	MakeThing("box", "wirefence", RenderLayer::Opaque, { 10.0f, 15.0f, 1.0f }, { -10.0f, 7.5f, -150.0f }, { 5.0f, 5.0f }); //1
 	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 50.0f }, { -20.0f, 7.5f, -135.0f }, { 5.0f, 5.0f }); //2
-
-	MakeThing("box", "wirefence", RenderLayer::Opaque, { 30.0f, 15.0f, 1.0f }, { -5.5f, 7.5f, -110.0f }, { 5.0f, 5.0f }); //3
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 30.0f, 15.0f, 1.0f }, { -5.5f, 7.5f, -120.0f }, { 5.0f, 5.0f }); //3
+	
 	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { -2.25f, 7.5f, -130.0f }, { 5.0f, 5.0f }); //4 
-	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 10.0f }, { 7.5f, 7.5f, -134.5f }, { 5.0f, 5.0f }); // 5
-	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { 15.0f, 7.5f, -140.0f }, { 5.0f, 5.0f }); // 6
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 12.5f }, { 7.5f, 7.5f, -135.7f }, { 5.0f, 5.0f }); // 5
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { 15.0f, 7.5f, -141.5f }, { 5.0f, 5.0f }); // 6
 
 	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 10.0f }, { 10.0f, 7.5f, -114.5f }, { 5.0f, 5.0f }); // 7
-	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 25.0f }, { 17.5f, 7.5f, -127.5f }, { 5.0f, 5.0f }); // 8
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 25.0f }, { 17.5f, 7.5f, -130.0f }, { 5.0f, 5.0f }); // 8
+	//MakeThing("box", "wirefence", RenderLayer::Opaque, { 15.0f, 15.0f, 1.0f }, { 5.0f, 7.5f, -115.5f }, { 5.0f, 5.0f }); // 9
+
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 10.0f }, { -3.0f, 7.5f, -105.0f }, { 5.0f, 5.0f }); // 10
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 27.5f, 15.0f, 1.0f }, { 11.0f, 7.5f, -102.5f }, { 5.0f, 5.0f }); // 11
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 30.0f, 15.0f, 1.0f }, { -10.0f, 7.5f, -90.0f }, { 5.0f, 5.0f }); // 12
+
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 20.0f }, { 15.0f, 7.5f, -85.0f }, { 5.0f, 5.0f }); // 13
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 35.0f, 15.0f, 1.0f }, {7.5f, 7.5f, -75.0f }, { 5.0f, 5.0f }); // 14
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 10.0f }, {-5.0f, 7.5f, -65.0f }, { 5.0f, 5.0f }); // 15
+
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 10.0f, 15.0f, 1.0f }, {-2.5f, 7.5f, -70.0f }, { 5.0f, 5.0f }); // 16
 
 }
 // std::string name, std::string material, RenderLayer type, XMFLOAT3 objectScale, XMFLOAT3 objectPos, XMFLOAT2 textureScale, XMFLOAT3 ObjectRotation
