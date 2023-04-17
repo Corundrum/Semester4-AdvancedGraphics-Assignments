@@ -394,13 +394,13 @@ void ShapesApp::OnKeyboardInput(const GameTimer& gt)
 	if (GetAsyncKeyState('D') & 0x8000)
 		mCamera.Strafe(10.0f * dt);
 
-	if (GetAsyncKeyState('P') & 0x8000)
+	if (GetAsyncKeyState('E') & 0x8000)
 		mCamera.Pedestal(10.0f * dt);
 
-	if (GetAsyncKeyState('O') & 0x8000)
+	if (GetAsyncKeyState('Q') & 0x8000)
 		mCamera.Pedestal(-10.0f * dt);
 
-	mCamera.SetPosition(mCamera.GetPosition3f().x, 3.0f, mCamera.GetPosition3f().z);
+	//mCamera.SetPosition(mCamera.GetPosition3f().x, 3.0f, mCamera.GetPosition3f().z);
 	player.Center = mCamera.GetPosition3f();
 
 	mCamera.UpdateViewMatrix();
