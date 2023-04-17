@@ -1331,12 +1331,12 @@ void ShapesApp::MakeThing(std::string name, std::string material, RenderLayer ty
 	item->name = name;
 
 
-	//Collision for maze, detected if the shape is a box and if the material is a "wirefence" (the brick material we made)
-	if (name == "box" && material == "wirefence")
-	{
-		item->box.Center = objectPos;
-		item->box.Extents = XMFLOAT3(objectScale.x * 0.5f, objectScale.y * 0.5f, objectScale.z * 0.5);
-	}
+	////Collision for maze, detected if the shape is a box and if the material is a "wirefence" (the brick material we made)
+	//if (name == "box" && material == "wirefence")
+	//{
+	//	item->box.Center = objectPos;
+	//	item->box.Extents = XMFLOAT3(objectScale.x * 0.5f, objectScale.y * 0.5f, objectScale.z * 0.5);
+	//}
 	
 	XMStoreFloat4x4(&item->World, XMMatrixScaling(objectScale.x, objectScale.y, objectScale.z) * XMMatrixRotationRollPitchYaw(ObjectRotation.x * (XM_PI / 180), ObjectRotation.y * (XM_PI / 180), ObjectRotation.z * (XM_PI / 180)) * XMMatrixTranslation(objectPos.x, objectPos.y, objectPos.z));
 	XMStoreFloat4x4(&item->TexTransform, XMMatrixScaling(textureScale.x, textureScale.y, 1.0f));
@@ -1445,9 +1445,25 @@ void ShapesApp::BuildRenderItems()
 	/*------------------------ HEDGE MAZE ----------------------*/
 	MakeThing("box", "wirefence", RenderLayer::Opaque, {1.0f, 15.0f, 100.0f}, {-25.0f, 7.5f, -110.0f}, {5.0f, 5.0f}); //left outer wall
 	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 100.0f }, { 25.0f, 7.5f, -110.0f }, { 5.0f, 5.0f }); //right outer wall
-	MakeThing("box", "wirefence", RenderLayer::Opaque, { 50.0f, 15.0f, 1.0f }, { 0.0f, 7.5f, -160.0f }, { 5.0f, 5.0f }); //back outer wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { -15.0f, 7.5f, -160.0f }, { 5.0f, 5.0f }); //back left outer wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { 15.0f, 7.5f, -160.0f }, { 5.0f, 5.0f }); //back right outer wall
 	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { -15.0f, 7.5f, -60.0f }, { 5.0f, 5.0f }); //outer wall closest to castle, left side
 	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { 15.0f, 7.5f, -60.0f }, { 5.0f, 5.0f }); //outer wall closest to castle, right side
+
+	/*--------------------- INNER HEDGE MAZE -------------------*/
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 10.0f }, { -5.5f, 7.5f, -155.0f }, { 5.0f, 5.0f }); //entrance left wall
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 10.0f }, { 5.5f, 7.5f, -155.0f }, { 5.0f, 5.0f }); //entrance right wall
+
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 10.0f, 15.0f, 1.0f }, { -10.0f, 7.5f, -150.0f }, { 5.0f, 5.0f }); //1
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 50.0f }, { -20.0f, 7.5f, -135.0f }, { 5.0f, 5.0f }); //2
+
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 30.0f, 15.0f, 1.0f }, { -5.5f, 7.5f, -110.0f }, { 5.0f, 5.0f }); //3
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { -2.25f, 7.5f, -130.0f }, { 5.0f, 5.0f }); //4 
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 10.0f }, { 7.5f, 7.5f, -134.5f }, { 5.0f, 5.0f }); // 5
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 20.0f, 15.0f, 1.0f }, { 15.0f, 7.5f, -140.0f }, { 5.0f, 5.0f }); // 6
+
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 10.0f }, { 10.0f, 7.5f, -114.5f }, { 5.0f, 5.0f }); // 7
+	MakeThing("box", "wirefence", RenderLayer::Opaque, { 1.0f, 15.0f, 25.0f }, { 17.5f, 7.5f, -127.5f }, { 5.0f, 5.0f }); // 8
 
 }
 // std::string name, std::string material, RenderLayer type, XMFLOAT3 objectScale, XMFLOAT3 objectPos, XMFLOAT2 textureScale, XMFLOAT3 ObjectRotation
